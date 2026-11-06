@@ -1,0 +1,34 @@
+{
+  "moeda": "USD",
+  "vendedores": [
+    {
+      "id": "v1",
+      "nome": "Mercado Kianda",
+      "email": "sb-kianda-business@teleka.example",
+      "produtos": [
+        { "id": "p1",  "nome": "Arroz (1 kg)",        "preco": 2.50, "tags": ["arroz", "rice"] },
+        { "id": "p2",  "nome": "Cebola (500 g)",      "preco": 0.80, "tags": ["cebola", "onion"] },
+        { "id": "p3",  "nome": "Alho (cabeca)",       "preco": 0.60, "tags": ["alho", "garlic"] },
+        { "id": "p4",  "nome": "Azeite (500 ml)",     "preco": 4.00, "tags": ["azeite", "oleo", "olive oil", "oil"] },
+        { "id": "p5",  "nome": "Sal (1 kg)",          "preco": 0.50, "tags": ["sal", "salt"] },
+        { "id": "p6",  "nome": "Batata (1 kg)",       "preco": 1.10, "tags": ["batata", "potato"] },
+        { "id": "p7",  "nome": "Ovos (duzia)",        "preco": 1.80, "tags": ["ovo", "ovos", "egg", "eggs"] },
+        { "id": "p8",  "nome": "Farinha (1 kg)",      "preco": 0.90, "tags": ["farinha", "flour"] }
+      ]
+    },
+    {
+      "id": "v2",
+      "nome": "Peixaria & Horta do Porto",
+      "email": "sb-porto-business@teleka.example",
+      "produtos": [
+        { "id": "p9",  "nome": "Filete de peixe (500 g)", "preco": 6.00, "tags": ["peixe", "fish", "filete"] },
+        { "id": "p10", "nome": "Tomate (500 g)",          "preco": 1.20, "tags": ["tomate", "tomato"] },
+        { "id": "p11", "nome": "Limao (3 un)",            "preco": 0.50, "tags": ["limao", "lemon"] },
+        { "id": "p12", "nome": "Coentros (molho)",        "preco": 0.70, "tags": ["coentros", "coentro", "cilantro"] },
+        { "id": "p13", "nome": "Frango (1 kg)",           "preco": 4.50, "tags": ["frango", "chicken"] },
+        { "id": "p14", "nome": "Pimento (2 un)",          "preco": 1.00, "tags": ["pimento", "pepper"] },
+        { "id": "p15", "nome": "Cenoura (500 g)",         "preco": 0.90, "tags": ["cenoura", "carrot"] }
+      ]
+    }
+  ]
+}

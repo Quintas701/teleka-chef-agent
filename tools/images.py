@@ -1,0 +1,17 @@
+"""Imagem do prato — gratuita, gerada do lado do cliente.
+
+Construimos um URL do Pollinations (geracao gratuita, sem chave) e a UI
+carrega-o directamente num <img>. Se falhar, a UI mostra um emoji de prato.
+Assim o backend nao precisa de rede nem de guardar ficheiros para a demo.
+"""
+import urllib.parse
+
+POLLINATIONS = "https://image.pollinations.ai/prompt/"
+
+
+def url_imagem(descricao, ingredientes_txt=""):
+    prompt = (
+        f"{descricao}. Ingredientes: {ingredientes_txt}. "
+        "Fotografia de comida realista, alta qualidade, vista de cima, mesa limpa."
+    )
+    return POLLINATIONS + urllib.parse.quote(prompt) + "?width=512&height=512&nologo=true"

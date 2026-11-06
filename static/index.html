@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Teleka Chef Agent</title>
+<style>
+  :root{
+    --espresso:#1C1410; --coral:#E8562A; --basil:#2F6D5C;
+    --cream:#FBF7F2; --card:#FFFFFF; --line:#EADFD3; --muted:#7A6E63;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+       background:var(--cream);color:var(--espresso);line-height:1.5}
+  .wrap{max-width:720px;margin:0 auto;padding:24px 16px 64px}
+  header{display:flex;align-items:center;gap:12px;margin-bottom:4px}
+  .logo{width:40px;height:40px;border-radius:12px;background:var(--coral);display:flex;
+        align-items:center;justify-content:center;font-size:22px}
+  h1{font-size:22px;margin:0}
+  .sub{color:var(--muted);margin:2px 0 18px;font-size:14px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+  .badge{font-size:12px;padding:4px 10px;border-radius:999px;background:#F1E8DE;color:var(--muted)}
+  .badge b{color:var(--basil)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
+  label{font-weight:600;font-size:14px;display:block;margin-bottom:8px}
+  textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:15px;
+           font-family:inherit;resize:vertical;min-height:64px;background:#fff}
+  .chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
+  .chip{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);
+        background:#fff;cursor:pointer;color:var(--muted)}
+  button{font-family:inherit;font-weight:600;border:0;border-radius:12px;padding:12px 18px;
+         font-size:15px;cursor:pointer}
+  .primary{background:var(--coral);color:#fff;width:100%;margin-top:14px}
+  .primary:disabled{opacity:.5;cursor:default}
+  .pay{background:#0070BA;color:#fff;width:100%;margin-top:6px}
+  .hidden{display:none}
+  .dish{display:flex;gap:14px;align-items:flex-start}
+  .dish img{width:120px;height:120px;border-radius:12px;object-fit:cover;background:#F1E8DE;flex:0 0 auto}
+  .dish .ph{width:120px;height:120px;border-radius:12px;background:#F1E8DE;display:flex;
+            align-items:center;justify-content:center;font-size:40px}
+  h2{font-size:17px;margin:0 0 4px}
+  ol{margin:10px 0 0;padding-left:18px;color:#3a322c;font-size:14px}
+  ol li{margin-bottom:3px}
+  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:14px}
+  td{padding:8px 0;border-bottom:1px solid var(--line)}
+  td.r{text-align:right;white-space:nowrap}
+  .vend{color:var(--muted);font-size:12px}
+  .total{display:flex;justify-content:space-between;font-weight:700;margin-top:12px;font-size:16px}
+  .ok{border-color:var(--basil)}
+  .ok h2{color:var(--basil)}
+  .pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:#E7F0ec;color:var(--basil)}
+  .muted{color:var(--muted);font-size:13px}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;
+        border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px;margin-right:6px}
+  @keyframes s{to{transform:rotate(360deg)}}
+  .flow{font-size:12px;color:var(--muted);margin-top:14px;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">🍲</div>
+    <div>
+      <h1>Teleka Chef Agent</h1>
+    </div>
+  </header>
+  <div class="sub">Diz o que tens na cozinha. A IA cria a receita, monta o carrinho com vendedores locais e paga pela PayPal.</div>
+
+  <div class="badges" id="badges">
+    <span class="badge">PayPal: <b id="b-paypal">…</b></span>
+    <span class="badge">IA: <b id="b-ia">…</b></span>
+  </div>
+
+  <div class="card">
+    <label for="pedido">O que tens em casa?</label>
+    <textarea id="pedido" placeholder="ex.: tenho arroz, tomate e peixe">tenho arroz, tomate e peixe</textarea>
+    <div class="chips" id="chips"></div>
+    <button class="primary" id="go">Gerar receita e carrinho</button>
+  </div>
+
+  <div id="resultado"></div>
+  <div id="confirmacao"></div>
+
+  <div class="flow">pedido → receita → carrinho → PayPal (sandbox) → vendedor pago → coleção</div>
+</div>
+
+<script>
+const $ = (id) => document.getElementById(id);
+let ultimo = null;
+
+const EXEMPLOS = ["tenho arroz, tomate e peixe", "frango, batata e cenoura", "ovos, farinha e leite"];
+$("chips").innerHTML = EXEMPLOS.map(e => `<span class="chip">${e}</span>`).join("");
+document.querySelectorAll(".chip").forEach(c =>
+  c.onclick = () => { $("pedido").value = c.textContent; });
+
+fetch("/api/estado").then(r => r.json()).then(s => {
+  $("b-paypal").textContent = s.paypal === "sandbox" ? "sandbox" : "mock (demo)";
+  $("b-ia").textContent = s.ia === "configurada" ? "Groq/LLM" : "modelo offline";
+});
+
+function money(v, m){ return Number(v).toFixed(2) + " " + m; }
+
+$("go").onclick = async () => {
+  const pedido = $("pedido").value.trim();
+  if(!pedido) return;
+  $("confirmacao").innerHTML = "";
+  $("go").disabled = true;
+  $("go").innerHTML = '<span class="spin"></span>A pensar…';
+  try{
+    const r = await fetch("/api/gerar", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({pedido})});
+    ultimo = await r.json();
+    renderResultado(ultimo);
+  } catch(e){
+    $("resultado").innerHTML = `<div class="card">Erro: ${e}</div>`;
+  } finally {
+    $("go").disabled = false;
+    $("go").textContent = "Gerar receita e carrinho";
+  }
+};
+
+function renderResultado(d){
+  const rec = d.receita;
+  const linhas = d.carrinho.map(p =>
+    `<tr><td>${p.nome}<div class="vend">${p.vendedor}</div></td>
+         <td class="r">${money(p.preco, p.moeda)}</td></tr>`).join("");
+  const passos = rec.passos.map(p => `<li>${p}</li>`).join("");
+  $("resultado").innerHTML = `
+    <div class="card">
+      <div class="dish">
+        <img src="${d.imagem_url}" alt="prato"
+             onerror="this.outerHTML='<div class=&quot;ph&quot;>🍲</div>'">
+        <div>
+          <h2>${rec.titulo}</h2>
+          <div class="muted">${rec.descricao}</div>
+          <div class="muted" style="margin-top:6px">motor: ${rec.motor}</div>
+        </div>
+      </div>
+      <ol>${passos}</ol>
+    </div>
+    <div class="card">
+      <h2>Carrinho <span class="muted">(ingredientes em falta)</span></h2>
+      <table>${linhas}</table>
+      <div class="total"><span>Total</span><span>${money(d.total, d.moeda)}</span></div>
+      ${d.order ? `<div class="muted" style="margin-top:8px">Order PayPal: <code>${d.order.id}</code> · ${d.order.status}</div>
+      <button class="pay" id="pay">Pagar com PayPal (${d.paypal_modo})</button>` :
+      `<div class="muted" style="margin-top:8px">Nada a comprar.</div>`}
+    </div>`;
+  const pay = $("pay");
+  if(pay) pay.onclick = pagar;
+}
+
+async function pagar(){
+  $("pay").disabled = true;
+  $("pay").innerHTML = '<span class="spin"></span>A pagar…';
+  const r = await fetch("/api/confirmar", {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({order_id: ultimo.order.id, carrinho: ultimo.carrinho})});
+  const c = await r.json();
+  const pos = c.payouts.map(p =>
+    `<tr><td>${p.vendedor}<div class="vend">${p.destinatario}</div></td>
+         <td class="r"><span class="pill">${p.status}</span> ${money(p.valor, p.moeda)}</td></tr>`).join("");
+  $("confirmacao").innerHTML = `
+    <div class="card ok">
+      <h2>✓ Pagamento concluído</h2>
+      <div class="muted">Captura <code>${c.captura.id}</code> · ${c.captura.status}</div>
+      <h2 style="margin-top:14px;font-size:15px">Vendedores pagos</h2>
+      <table>${pos}</table>
+      <div class="muted" style="margin-top:12px">${c.mensagem}</div>
+    </div>`;
+}
+</script>
+</body>
+</html>
