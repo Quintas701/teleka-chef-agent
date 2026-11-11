@@ -36,6 +36,24 @@ flowchart LR
 6. **PayPal — Payouts:** after the captured amount is verified, each vendor is paid their share
 7. **Social loop:** the purchase becomes a "collection" on the buyer's Teleka profile
 
+### Real dishes, never nonsense
+
+The agent proposes a **real, well-known dish** — the one a cook would actually make
+with what you have — with concrete steps (quantities, times, temperatures):
+
+| You have | The agent cooks |
+|---|---|
+| chicken + potatoes | Fried chicken with French fries |
+| rice + fish (+ tomato) | Portuguese fish rice (*arroz de peixe*) |
+| cassava flour (*fuba*) + fish | Funge with fish *calulu* (Angola) |
+| eggs + potatoes | Spanish potato omelette |
+| eggs + flour + milk | Fluffy pancakes |
+
+`tools/livro.py` is a book of classic dishes. When your ingredients match one, the
+agent **locks the dish** and the LLM only writes the recipe (in your language); for
+anything else the LLM is asked for a traditional, recognisable dish — no invented
+fusions. Without an AI key, the same book cooks offline.
+
 ### The agent shows its work
 
 Every tool call is recorded in a **trace** (`tool`, structured `data`, `ms`) that is
@@ -45,7 +63,7 @@ sandbox mode):
 
 ```
 parse_request        Understood 3 ingredient(s): rice, tomato, fish        0 ms
-generate_recipe      "Grilled fish with tomato rice" · 9 ingredients ·    1900 ms
+generate_recipe      "Portuguese fish rice" · 9 ingredients ·             3200 ms
 check_pantry         You have 3 · missing 6                                0 ms
 search_marketplace   6 product(s) from Mercado Kianda, ... · 8.40 USD      1 ms
 create_paypal_order  Orders API v2 → 5XK... · PAYER_ACTION_REQUIRED      620 ms
@@ -91,7 +109,7 @@ uvicorn app:app --reload
 # abre http://127.0.0.1:8000
 ```
 
-With no `.env`, PayPal runs in **mock** mode and recipes use an **offline model**,
+With no `.env`, PayPal runs in **mock** mode and recipes come from a built-in **recipe book of real dishes**,
 so the whole flow works without any account, key, or internet — perfect for a
 reliable demo recording.
 
@@ -121,9 +139,9 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-17 offline tests, including the sandbox path against a simulated PayPal API:
+29 offline tests, including the sandbox path against a simulated PayPal API:
 tampered carts, double confirmation, unapproved orders, capture/amount mismatch,
-the cross-language pantry check, and the agent trace.
+the cross-language pantry check, real-dish selection, and the agent trace.
 
 ## Project layout
 
@@ -134,7 +152,8 @@ run_demo.py       command-line test of the full flow
 tests/            offline test suite (pytest)
 tools/
   texto.py        ingredient normalisation (plurals, accents) shared by agent + catalog
-  recipe.py       recipe generation (Groq/LLM, validated, with offline fallback)
+  recipe.py       recipe generation (Groq/LLM over HTTP, validated, with offline fallback)
+  livro.py        recipe book of real, classic dishes (EN/PT)
   catalog.py      mock marketplace search (data/catalog.json)
   paypal.py       PayPal sandbox: Orders + Payouts (with mock mode)
   images.py       free dish image (Pollinations URL, client-side)

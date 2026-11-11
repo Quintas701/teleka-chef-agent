@@ -69,8 +69,53 @@ def test_llm_com_lista_como_string_e_recusado():
 def test_llm_falha_cai_no_offline(monkeypatch):
     monkeypatch.setenv("LLM_API_KEY", "x")
     monkeypatch.setattr(recipe, "_gerar_llm", lambda h, l: (_ for _ in ()).throw(RuntimeError("rede")))
-    assert recipe.gerar_receita(["arroz"])["motor"] == "offline template"
-    assert recipe.gerar_receita(["arroz"], lang="pt")["motor"] == "modelo offline"
+    assert recipe.gerar_receita(["arroz"])["motor"] == "offline recipe book"
+    assert recipe.gerar_receita(["arroz"], lang="pt")["motor"] == "livro de receitas offline"
+
+
+# ---------- pratos reais, nunca inventados ----------
+@pytest.mark.parametrize("tenho, lang, prato", [
+    (["frango", "batatas"], "pt", "Frango frito com batata frita"),
+    (["chicken", "potatoes"], "en", "Fried chicken with French fries"),
+    (["frango", "batata"], "en", "Fried chicken with French fries"),  # PT escrito, EN pedido
+    (["arroz", "tomate", "peixe"], "pt", "Arroz de peixe"),
+    (["fuba", "peixe"], "pt", "Funge com calulu de peixe"),
+    (["ovos", "batatas"], "pt", "Tortilha de batata"),
+    (["ovos", "farinha", "leite"], "en", "Fluffy pancakes"),
+    (["esparguete", "tomates"], "pt", "Esparguete com molho de tomate"),
+    (["frango"], "pt", "Frango grelhado com gindungo"),
+])
+def test_livro_escolhe_o_prato_classico(tenho, lang, prato):
+    assert recipe._gerar_canned(tenho, lang)["titulo"] == prato
+
+
+def test_livro_usa_as_palavras_do_utilizador_e_compra_oleo_para_fritar():
+    r = agent.processar("tenho frango e batatas", lang="pt")
+    assert r["receita"]["ingredientes_necessarios"][:2] == ["frango", "batatas"]
+    ids = [p["produto_id"] for p in r["carrinho"]]
+    assert "p31" in ids and "p4" not in ids  # oleo vegetal, nao azeite
+    assert not {"p13", "p6"} & set(ids)      # nao volta a vender frango nem batata
+
+
+def test_sem_prato_no_livro_o_titulo_e_honesto():
+    assert recipe._gerar_canned(["beringela", "queijo"], "pt")["titulo"] == "Refogado de beringela e queijo"
+
+
+def test_prompt_da_ia_impoe_o_prato_classico(monkeypatch):
+    monkeypatch.setenv("LLM_API_KEY", "x")
+    visto = {}
+
+    def falso(url, headers=None, json=None, timeout=None):
+        visto.update(json)
+        conteudo = '{"titulo": "Frango frito com batata frita", "passos": ["a"], "ingredientes_necessarios": ["frango"]}'
+        return type("R", (), {"status_code": 200, "text": "",
+                              "json": lambda self: {"choices": [{"message": {"content": conteudo}}]}})()
+    monkeypatch.setattr(recipe.requests, "post", falso)
+    r = recipe.gerar_receita(["frango", "batatas"], lang="pt")
+    pedido = visto["messages"][1]["content"]
+    assert "OBRIGATORIAMENTE: 'Frango frito com batata frita'" in pedido
+    assert "tratando o utilizador por tu" in pedido
+    assert visto["reasoning_effort"] == "low" and r["motor"].startswith("AI")
 
 
 def test_despensa_entre_linguas_nao_compra_duas_vezes(monkeypatch):
@@ -91,21 +136,22 @@ def test_trace_regista_cada_ferramenta_e_lingua():
     assert [t["tool"] for t in r["trace"]] == [
         "parse_request", "generate_recipe", "check_pantry", "search_marketplace", "create_paypal_order"]
     assert all(isinstance(t["ms"], int) for t in r["trace"])
-    assert r["receita"]["titulo"].startswith("Chef's")
+    assert r["receita"]["titulo"] == "Portuguese fish rice (arroz de peixe)"
     c = agent.confirmar(r["order"]["id"])
     assert [t["tool"] for t in c["trace"]] == ["capture_payment", "verify_amount", "pay_vendors"]
     assert c["trace"][1]["data"]["match"] is True
     pt = agent.processar("tenho arroz", lang="pt")
-    assert pt["lang"] == "pt" and pt["receita"]["motor"] == "modelo offline"
+    assert pt["lang"] == "pt" and pt["receita"]["titulo"] == "Arroz de tomate"
 
 
 # ---------- fluxo mock pela API HTTP ----------
 def test_fluxo_mock_completo(cliente):
     r = cliente.post("/api/gerar", json={"pedido": "tenho arroz, tomate e peixe"}).json()
-    assert r["total"] == 5.9 and r["order"]["mock"]
+    assert r["receita"]["titulo"] == "Portuguese fish rice (arroz de peixe)"
+    assert r["total"] == 7.6 and r["order"]["mock"]
     c = cliente.post("/api/confirmar", json={"order_id": r["order"]["id"]}).json()
     assert c["captura"]["status"] == "COMPLETED"
-    assert sum(float(p["valor"]) for p in c["payouts"]) == pytest.approx(5.9)
+    assert sum(float(p["valor"]) for p in c["payouts"]) == pytest.approx(7.6)
 
 
 def test_cliente_nao_consegue_redireccionar_payouts(cliente):
@@ -202,7 +248,7 @@ def test_sandbox_fluxo_com_aprovacao(cliente, sandbox):
     assert ctx["return_url"].endswith("/?paypal=aprovado")
 
     c = cliente.post("/api/confirmar", json={"order_id": "ORD1"}).json()
-    assert c["captura"]["valor"] == "5.90"
+    assert c["captura"]["valor"] == "7.60"
     lote = pp.pedidos[-1][2]
     assert lote["sender_batch_header"]["sender_batch_id"] == "ORD1"  # idempotente na PayPal
     assert pp.pedidos[-2][1]["PayPal-Request-Id"] == "capturar-ORD1"
