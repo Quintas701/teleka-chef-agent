@@ -20,7 +20,7 @@ def _gerar_llm(have_list):
         api_key=os.getenv("LLM_API_KEY"),
         base_url=os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1"),
     )
-    modelo = os.getenv("LLM_MODEL", "llama-3.1-8b-instant")
+    modelo = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
     have = ", ".join(have_list)
     prompt = (
         "Es um chef. O utilizador TEM estes ingredientes: "
