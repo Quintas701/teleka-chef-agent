@@ -28,6 +28,8 @@ def main():
         print(f"   {i}. {passo}")
 
     print(f"\nFaltam comprar: {', '.join(r['faltam']) or '(nada)'}")
+    if r["nao_encontrados"]:
+        print(f"Sem vendedor no marketplace: {', '.join(r['nao_encontrados'])}")
     print("Carrinho:")
     for p in r["carrinho"]:
         print(f"   - {p['nome']:28} {p['preco']:>5.2f} {p['moeda']}  ({p['vendedor']})")
@@ -37,9 +39,14 @@ def main():
         print("\n(Carrinho vazio — nada a pagar.)")
         return
     print(f"\nOrder PayPal: {r['order']['id']}  [{r['order']['status']}]")
+    if r["order"]["approve_url"]:
+        # Sandbox real: a captura exige que o comprador aprove primeiro no browser.
+        print("\nEm sandbox o comprador tem de aprovar no browser, por isso o CLI para aqui.\n"
+              "Para o fluxo completo com a PayPal real usa a demo web (uvicorn app:app).\n")
+        return
 
     print("\n--- utilizador aprova e paga ---")
-    c = agent.confirmar(r["order"]["id"], r["carrinho"])
+    c = agent.confirmar(r["order"]["id"])
     print(f"Captura: {c['captura']['id']}  [{c['captura']['status']}]")
     for po in c["payouts"]:
         print(f"Payout -> {po['vendedor']:30} {po['valor']} {po['moeda']}  "

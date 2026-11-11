@@ -27,7 +27,7 @@
            font-family:inherit;resize:vertical;min-height:64px;background:#fff}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
   .chip{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);
-        background:#fff;cursor:pointer;color:var(--muted)}
+        background:#fff;cursor:pointer;color:var(--muted);font-weight:400}
   button{font-family:inherit;font-weight:600;border:0;border-radius:12px;padding:12px 18px;
          font-size:15px;cursor:pointer}
   .primary{background:var(--coral);color:#fff;width:100%;margin-top:14px}
@@ -53,6 +53,8 @@
   .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;
         border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px;margin-right:6px}
   @keyframes s{to{transform:rotate(360deg)}}
+  .erro{border-color:#E8A08A;background:#FFF6F2}
+  .chip:hover{border-color:var(--coral);color:var(--espresso)}
   .flow{font-size:12px;color:var(--muted);margin-top:14px;text-align:center}
 </style>
 </head>
@@ -88,17 +90,36 @@
 const $ = (id) => document.getElementById(id);
 let ultimo = null;
 
+// Tudo o que vem do servidor (e do LLM, que o utilizador pode influenciar) e texto, nunca HTML.
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g,
+  c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function money(v, m){ return Number(v).toFixed(2) + " " + esc(m); }
+function guardar(k, v){ try{ sessionStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function ler(k){ try{ return JSON.parse(sessionStorage.getItem(k)); }catch(e){ return null; } }
+function erroCard(msg){ return `<div class="card erro"><b>Algo correu mal.</b><div class="muted">${esc(msg)}</div></div>`; }
+
+async function api(url, corpo){
+  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"},
+                              body: JSON.stringify(corpo)});
+  let d = null;
+  try{ d = await r.json(); }catch(e){}
+  if(!r.ok){
+    const det = d && (d.erro || (Array.isArray(d.detail) ? d.detail.map(x => x.msg).join("; ") : d.detail));
+    throw new Error(det || `HTTP ${r.status}`);
+  }
+  return d;
+}
+
 const EXEMPLOS = ["tenho arroz, tomate e peixe", "frango, batata e cenoura", "ovos, farinha e leite"];
-$("chips").innerHTML = EXEMPLOS.map(e => `<span class="chip">${e}</span>`).join("");
+$("chips").innerHTML = EXEMPLOS.map(e => `<button type="button" class="chip">${esc(e)}</button>`).join("");
 document.querySelectorAll(".chip").forEach(c =>
   c.onclick = () => { $("pedido").value = c.textContent; });
 
 fetch("/api/estado").then(r => r.json()).then(s => {
   $("b-paypal").textContent = s.paypal === "sandbox" ? "sandbox" : "mock (demo)";
   $("b-ia").textContent = s.ia === "configurada" ? "Groq/LLM" : "modelo offline";
-});
-
-function money(v, m){ return Number(v).toFixed(2) + " " + m; }
+  if(s.paypal_aviso) $("b-paypal").title = s.paypal_aviso;
+}).catch(() => { $("b-paypal").textContent = $("b-ia").textContent = "sem ligação"; });
 
 $("go").onclick = async () => {
   const pedido = $("pedido").value.trim();
@@ -107,12 +128,11 @@ $("go").onclick = async () => {
   $("go").disabled = true;
   $("go").innerHTML = '<span class="spin"></span>A pensar…';
   try{
-    const r = await fetch("/api/gerar", {method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({pedido})});
-    ultimo = await r.json();
+    ultimo = await api("/api/gerar", {pedido});
+    guardar("teleka_ultimo", ultimo);
     renderResultado(ultimo);
   } catch(e){
-    $("resultado").innerHTML = `<div class="card">Erro: ${e}</div>`;
+    $("resultado").innerHTML = erroCard(e.message);
   } finally {
     $("go").disabled = false;
     $("go").textContent = "Gerar receita e carrinho";
@@ -122,18 +142,23 @@ $("go").onclick = async () => {
 function renderResultado(d){
   const rec = d.receita;
   const linhas = d.carrinho.map(p =>
-    `<tr><td>${p.nome}<div class="vend">${p.vendedor}</div></td>
+    `<tr><td>${esc(p.nome)}<div class="vend">${esc(p.vendedor)}</div></td>
          <td class="r">${money(p.preco, p.moeda)}</td></tr>`).join("");
-  const passos = rec.passos.map(p => `<li>${p}</li>`).join("");
+  const passos = rec.passos.map(p => `<li>${esc(p)}</li>`).join("");
+  const semStock = (d.nao_encontrados || []).length
+    ? `<div class="muted" style="margin-top:8px">Sem vendedor no marketplace: ${esc(d.nao_encontrados.join(", "))}</div>` : "";
+  const botao = d.order
+    ? `<div class="muted" style="margin-top:8px">Order PayPal: <code>${esc(d.order.id)}</code> · ${esc(d.order.status)}</div>
+       <button class="pay" id="pay">Pagar com PayPal (${esc(d.paypal_modo)})</button>`
+    : `<div class="muted" style="margin-top:8px">Já tens tudo — nada a comprar.</div>`;
   $("resultado").innerHTML = `
     <div class="card">
       <div class="dish">
-        <img src="${d.imagem_url}" alt="prato"
-             onerror="this.outerHTML='<div class=&quot;ph&quot;>🍲</div>'">
+        <img src="${esc(d.imagem_url)}" alt="${esc(rec.titulo)}">
         <div>
-          <h2>${rec.titulo}</h2>
-          <div class="muted">${rec.descricao}</div>
-          <div class="muted" style="margin-top:6px">motor: ${rec.motor}</div>
+          <h2>${esc(rec.titulo)}</h2>
+          <div class="muted">${esc(rec.descricao)}</div>
+          <div class="muted" style="margin-top:6px">motor: ${esc(rec.motor)}</div>
         </div>
       </div>
       <ol>${passos}</ol>
@@ -142,32 +167,63 @@ function renderResultado(d){
       <h2>Carrinho <span class="muted">(ingredientes em falta)</span></h2>
       <table>${linhas}</table>
       <div class="total"><span>Total</span><span>${money(d.total, d.moeda)}</span></div>
-      ${d.order ? `<div class="muted" style="margin-top:8px">Order PayPal: <code>${d.order.id}</code> · ${d.order.status}</div>
-      <button class="pay" id="pay">Pagar com PayPal (${d.paypal_modo})</button>` :
-      `<div class="muted" style="margin-top:8px">Nada a comprar.</div>`}
+      ${semStock}
+      ${botao}
     </div>`;
+  const img = document.querySelector(".dish img");
+  if(img) img.onerror = () => { const ph = document.createElement("div"); ph.className = "ph"; ph.textContent = "🍲"; img.replaceWith(ph); };
   const pay = $("pay");
   if(pay) pay.onclick = pagar;
 }
 
 async function pagar(){
-  $("pay").disabled = true;
-  $("pay").innerHTML = '<span class="spin"></span>A pagar…';
-  const r = await fetch("/api/confirmar", {method:"POST", headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({order_id: ultimo.order.id, carrinho: ultimo.carrinho})});
-  const c = await r.json();
-  const pos = c.payouts.map(p =>
-    `<tr><td>${p.vendedor}<div class="vend">${p.destinatario}</div></td>
-         <td class="r"><span class="pill">${p.status}</span> ${money(p.valor, p.moeda)}</td></tr>`).join("");
-  $("confirmacao").innerHTML = `
-    <div class="card ok">
-      <h2>✓ Pagamento concluído</h2>
-      <div class="muted">Captura <code>${c.captura.id}</code> · ${c.captura.status}</div>
-      <h2 style="margin-top:14px;font-size:15px">Vendedores pagos</h2>
-      <table>${pos}</table>
-      <div class="muted" style="margin-top:12px">${c.mensagem}</div>
-    </div>`;
+  const pay = $("pay");
+  // Sandbox real: o comprador aprova na PayPal e volta a esta pagina (?token=...).
+  if(ultimo.order.approve_url){
+    pay.disabled = true;
+    pay.innerHTML = '<span class="spin"></span>A abrir a PayPal…';
+    window.location.href = ultimo.order.approve_url;
+    return;
+  }
+  await confirmar(ultimo.order.id);
 }
+
+async function confirmar(orderId){
+  const pay = $("pay");
+  if(pay){ pay.disabled = true; pay.innerHTML = '<span class="spin"></span>A pagar…'; }
+  try{
+    const c = await api("/api/confirmar", {order_id: orderId});
+    const pos = c.payouts.map(p =>
+      `<tr><td>${esc(p.vendedor)}<div class="vend">${esc(p.destinatario)}</div></td>
+           <td class="r"><span class="pill">${esc(p.status)}</span> ${money(p.valor, p.moeda)}</td></tr>`).join("");
+    if(pay) pay.remove();
+    $("confirmacao").innerHTML = `
+      <div class="card ok">
+        <h2>✓ Pagamento concluído</h2>
+        <div class="muted">Captura <code>${esc(c.captura.id)}</code> · ${esc(c.captura.status)}</div>
+        <h2 style="margin-top:14px;font-size:15px">Vendedores pagos</h2>
+        <table>${pos}</table>
+        <div class="muted" style="margin-top:12px">${esc(c.mensagem)}</div>
+      </div>`;
+  } catch(e){
+    $("confirmacao").innerHTML = erroCard(e.message);
+    if(pay){ pay.disabled = false; pay.textContent = "Tentar de novo"; }
+  }
+}
+
+// Regresso da PayPal: ?paypal=aprovado&token=<order_id>&PayerID=...  ou  ?paypal=cancelado
+(function regresso(){
+  const q = new URLSearchParams(location.search);
+  if(!q.has("paypal")) return;
+  history.replaceState(null, "", location.pathname);
+  ultimo = ler("teleka_ultimo");
+  if(ultimo) renderResultado(ultimo);
+  if(q.get("paypal") === "cancelado"){
+    $("confirmacao").innerHTML = `<div class="card"><b>Pagamento cancelado.</b><div class="muted">Nada foi cobrado. Podes tentar de novo.</div></div>`;
+  } else if(q.get("token")){
+    confirmar(q.get("token"));
+  }
+})();
 </script>
 </body>
 </html>

@@ -21,7 +21,7 @@
       "nome": "Peixaria & Horta do Porto",
       "email": "sb-porto-business@teleka.example",
       "produtos": [
-        { "id": "p9",  "nome": "Filete de peixe (500 g)", "preco": 6.00, "tags": ["peixe", "fish", "filete"] },
+        { "id": "p9",  "nome": "Filete de peixe (500 g)", "preco": 6.00, "tags": ["peixe", "fish"] },
         { "id": "p10", "nome": "Tomate (500 g)",          "preco": 1.20, "tags": ["tomate", "tomato"] },
         { "id": "p11", "nome": "Limao (3 un)",            "preco": 0.50, "tags": ["limao", "lemon"] },
         { "id": "p12", "nome": "Coentros (molho)",        "preco": 0.70, "tags": ["coentros", "coentro", "cilantro"] },

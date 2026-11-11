@@ -2,9 +2,15 @@
 
 Numa app real, isto seria uma pesquisa na base de dados de produtos dos
 vendedores. Aqui e um JSON fixo para a demo correr sozinha.
+
+Precos e emails dos vendedores saem SEMPRE daqui (lado do servidor) — nunca
+do pedido do browser. E isso que impede alguem de redireccionar um payout.
 """
 import json
 import os
+from decimal import Decimal
+
+from tools.texto import chave, formas, mesma_coisa
 
 _CAMINHO = os.path.join(os.path.dirname(__file__), "..", "data", "catalog.json")
 
@@ -14,37 +20,66 @@ with open(_CAMINHO, encoding="utf-8") as _f:
 MOEDA = _DADOS["moeda"]
 
 
-def _indice_email():
-    return {v["id"]: v["email"] for v in _DADOS["vendedores"]}
+def para_centimos(valor):
+    """2.5 -> 250, sem erros de virgula flutuante (passa por str -> Decimal)."""
+    return int((Decimal(str(valor)) * 100).to_integral_value())
+
+
+def _termos(produto):
+    nome_base = produto["nome"].split("(")[0]
+    return [chave(t) for t in produto.get("tags", [])] + [chave(nome_base)]
+
+
+def _pontuacao(ingrediente, produto):
+    """3 = o ingrediente E o produto ('tomates' ~ 'tomate');
+    1 = uma palavra do ingrediente e um termo do produto ('peito de frango' ~ 'frango');
+    0 = nada. 'sal' nunca casa com 'salsa' (compara palavras inteiras)."""
+    ing = chave(ingrediente)
+    palavras = ing.split()
+    melhor = 0
+    for termo in _termos(produto):
+        if mesma_coisa(ing, termo):
+            return 3
+        if " " in termo:
+            if f" {termo} " in f" {ing} ":
+                melhor = max(melhor, 2)
+        elif any(formas(p) & formas(termo) for p in palavras):
+            melhor = max(melhor, 1)
+    return melhor
 
 
 def procurar_produtos(ingredientes):
-    """Dada uma lista de ingredientes, devolve o melhor produto correspondente
-    de cada vendedor (um por ingrediente). Ferramenta que o agente invoca."""
-    emails = _indice_email()
-    resultados = []
-    vistos = set()
+    """Para cada ingrediente, o produto que melhor lhe corresponde em todo o
+    catalogo. Ferramenta que o agente invoca.
+
+    Devolve (carrinho, nao_encontrados) — o que nao existe no marketplace
+    e reportado em vez de desaparecer em silencio."""
+    carrinho, nao_encontrados, vistos = [], [], set()
     for ing in ingredientes:
-        ing_l = ing.lower().strip()
-        if not ing_l:
+        if not chave(ing):
             continue
+        melhor = None  # (pontuacao, vendedor, produto)
         for v in _DADOS["vendedores"]:
-            achou = None
             for p in v["produtos"]:
-                if ing_l in p["nome"].lower() or any(ing_l == t or ing_l in t for t in p.get("tags", [])):
-                    achou = p
-                    break
-            if achou and achou["id"] not in vistos:
-                vistos.add(achou["id"])
-                resultados.append({
-                    "ingrediente": ing,
-                    "produto_id": achou["id"],
-                    "nome": achou["nome"],
-                    "preco": achou["preco"],
-                    "moeda": MOEDA,
-                    "vendedor_id": v["id"],
-                    "vendedor": v["nome"],
-                    "vendedor_email": emails[v["id"]],
-                })
-                break
-    return resultados
+                s = _pontuacao(ing, p)
+                if s and (melhor is None or s > melhor[0]):
+                    melhor = (s, v, p)
+        if melhor is None:
+            nao_encontrados.append(ing)
+            continue
+        _, v, p = melhor
+        if p["id"] in vistos:  # "tomate" e "tomate cereja" -> um so produto
+            continue
+        vistos.add(p["id"])
+        carrinho.append({
+            "ingrediente": ing,
+            "produto_id": p["id"],
+            "nome": p["nome"],
+            "preco": p["preco"],
+            "preco_centimos": para_centimos(p["preco"]),
+            "moeda": MOEDA,
+            "vendedor_id": v["id"],
+            "vendedor": v["nome"],
+            "vendedor_email": v["email"],
+        })
+    return carrinho, nao_encontrados

@@ -5,7 +5,7 @@ agent writes a recipe, fills a cart from local vendors, pays with PayPal, and
 settles the money to each vendor — closing the loop *from inspiration to plate*.
 
 Built for the **PayPal AI Hackathon 2026** as a focused, self-contained slice of
-[Teleka](https://teleka.app), a real food social-commerce platform (live on the
+[Teleka](https://www.teleka.org), a real food social-commerce platform (live on the
 App Store). This repo is **not** the full Teleka app — it is the agent + PayPal
 layer, runnable on its own.
 
@@ -30,9 +30,16 @@ pedido → receita (IA) → carrinho (vendedores locais) → PayPal (sandbox) �
   Payouts API v1 to settle each vendor — all against the **PayPal sandbox**.
 - **AI** (`tools/recipe.py`): recipe generation via an LLM (Groq / Gemini / any
   OpenAI-compatible endpoint). Free providers; no OpenAI cost.
-- **Agentic commerce:** the agent (`agent.py`) orchestrates these as **tools** —
-  it decides to generate the recipe, search the catalog, create the order and pay
-  the vendor. Human-in-the-loop approval before the money moves.
+- **Agentic commerce:** the agent (`agent.py`) chains these **tools** — recipe →
+  catalog → order → capture → payouts — with the buyer approving on PayPal before
+  any money moves.
+- **Safe by design:** the AI chooses the *dish*; it never chooses the *money*.
+  Prices and vendor emails come from the server-side catalog, and each order's
+  cart is stored on the server when the order is created. Confirming takes only
+  the `order_id`, so a tampered browser cannot redirect a payout or change an
+  amount. Confirming twice never charges or pays twice (`PayPal-Request-Id` on
+  capture, `sender_batch_id = order_id` on payouts, plus a per-order lock), and
+  vendors are paid only after the captured amount matches the cart to the cent.
 
 ## Quickstart (zero keys — runs offline in mock mode)
 
@@ -60,9 +67,25 @@ Copy `.env.example` to `.env` and fill what you want:
   <https://developer.paypal.com/dashboard/applications/sandbox> → set
   `PAYPAL_MODE=sandbox`, `PAYPAL_CLIENT_ID`, `PAYPAL_CLIENT_SECRET`.
 
-> Note: a real PayPal **capture** needs the buyer to approve the order first (via
-> the `approve_url`). The mock mode skips that redirect so the demo stays smooth;
-> the real sandbox code is right there in `tools/paypal.py`.
+In sandbox mode the web demo runs the real buyer flow: **Pay with PayPal**
+redirects to PayPal, the buyer logs in with a sandbox *personal* account and
+approves, PayPal sends them back, and the app captures and settles the vendors.
+Mock mode skips that redirect so the demo also works offline.
+
+> **Payouts:** the vendor emails in `data/catalog.json` must be real sandbox
+> accounts, and **not** the business account that owns your app (you cannot pay
+> yourself). Create them under *Testing Tools → Sandbox Accounts*. With unknown
+> emails the payout stays `UNCLAIMED`.
+
+## Tests
+
+```bash
+pip install -r requirements-dev.txt
+pytest
+```
+
+14 offline tests, including the sandbox path against a simulated PayPal API:
+tampered carts, double confirmation, unapproved orders, capture/amount mismatch.
 
 ## Project layout
 
@@ -70,8 +93,10 @@ Copy `.env.example` to `.env` and fill what you want:
 app.py            FastAPI server (serves the UI + /api endpoints)
 agent.py          the Chef Agent — orchestrates the tools
 run_demo.py       command-line test of the full flow
+tests/            offline test suite (pytest)
 tools/
-  recipe.py       recipe generation (Groq/LLM, with offline fallback)
+  texto.py        ingredient normalisation (plurals, accents) shared by agent + catalog
+  recipe.py       recipe generation (Groq/LLM, validated, with offline fallback)
   catalog.py      mock marketplace search (data/catalog.json)
   paypal.py       PayPal sandbox: Orders + Payouts (with mock mode)
   images.py       free dish image (Pollinations URL, client-side)

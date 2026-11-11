@@ -1,6 +1,12 @@
+# segredos — NUNCA no repositorio
+.env
+.env.*
+!.env.example
+
+# python
 __pycache__/
 *.pyc
-.env
 .venv/
 venv/
+.pytest_cache/
 *.zip

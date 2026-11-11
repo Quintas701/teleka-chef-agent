@@ -11,25 +11,39 @@ try:
 except Exception:
     pass
 
-from fastapi import FastAPI
-from fastapi.responses import FileResponse
-from pydantic import BaseModel
+from fastapi import FastAPI, Request
+from fastapi.responses import FileResponse, JSONResponse
+from pydantic import BaseModel, Field
 
 import agent
 from tools.recipe import _tem_llm
-from tools.paypal import estado as paypal_estado
+from tools.paypal import ErroPayPal, aviso_configuracao, estado as paypal_estado
 
 app = FastAPI(title="Teleka Chef Agent")
 BASE = os.path.dirname(os.path.abspath(__file__))
 
+if aviso_configuracao():
+    print(f"[aviso] {aviso_configuracao()}")
+
 
 class PedidoIn(BaseModel):
-    pedido: str
+    pedido: str = Field(min_length=1, max_length=500)
 
 
 class ConfirmarIn(BaseModel):
-    order_id: str
-    carrinho: list
+    # So o id. O carrinho (precos, vendedores, emails) vive no servidor.
+    order_id: str = Field(min_length=1, max_length=64)
+
+
+@app.exception_handler(agent.ErroAgente)
+def _erro_agente(_req, e: agent.ErroAgente):
+    return JSONResponse(status_code=e.status, content={"erro": str(e)})
+
+
+@app.exception_handler(ErroPayPal)
+def _erro_paypal(_req, e: ErroPayPal):
+    return JSONResponse(status_code=e.status,
+                        content={"erro": str(e), "codigo": e.codigo, "debug_id": e.debug_id})
 
 
 @app.get("/")
@@ -41,15 +55,19 @@ def index():
 def estado():
     return {
         "paypal": paypal_estado(),
+        "paypal_aviso": aviso_configuracao(),
         "ia": "configurada" if _tem_llm() else "modelo offline",
     }
 
 
 @app.post("/api/gerar")
-def gerar(inp: PedidoIn):
-    return agent.processar(inp.pedido)
+def gerar(inp: PedidoIn, request: Request):
+    # A PayPal devolve o comprador a esta pagina com ?token=<order_id> depois de aprovar.
+    base = str(request.base_url).rstrip("/")
+    return agent.processar(inp.pedido, return_url=f"{base}/?paypal=aprovado",
+                           cancel_url=f"{base}/?paypal=cancelado")
 
 
 @app.post("/api/confirmar")
 def confirmar(inp: ConfirmarIn):
-    return agent.confirmar(inp.order_id, inp.carrinho)
+    return agent.confirmar(inp.order_id)

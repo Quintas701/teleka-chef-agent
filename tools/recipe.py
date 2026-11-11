@@ -38,17 +38,39 @@ def _gerar_llm(have_list):
             {"role": "user", "content": prompt},
         ],
         temperature=0.6,
-        max_tokens=500,
+        max_tokens=700,
+        timeout=20,
         response_format={"type": "json_object"},
     )
-    dados = json.loads(resp.choices[0].message.content)
-    # normaliza
-    dados["ingredientes_necessarios"] = [str(i).lower().strip() for i in dados.get("ingredientes_necessarios", [])]
-    dados["passos"] = [str(p) for p in dados.get("passos", [])]
-    dados.setdefault("titulo", "Prato do dia")
-    dados.setdefault("descricao", "")
+    dados = _validar(json.loads(resp.choices[0].message.content))
     dados["motor"] = f"IA ({modelo})"
     return dados
+
+
+def _lista_de_texto(valor):
+    if not isinstance(valor, list):
+        return []
+    return [str(x).strip() for x in valor if isinstance(x, (str, int, float)) and str(x).strip()]
+
+
+def _validar(dados):
+    """O LLM e uma fonte nao confiavel: confirma a forma antes de a usar.
+    Uma lista que chegue como string seria iterada letra a letra e o carrinho
+    encheria de 'a', 'r', 'r'... — melhor recusar e cair no modelo offline."""
+    if not isinstance(dados, dict):
+        raise ValueError("resposta nao e um objecto JSON")
+    ingredientes = [i.lower() for i in _lista_de_texto(dados.get("ingredientes_necessarios"))]
+    passos = _lista_de_texto(dados.get("passos"))
+    if not ingredientes or not passos:
+        raise ValueError("faltam ingredientes_necessarios ou passos")
+    titulo = dados.get("titulo")
+    descricao = dados.get("descricao")
+    return {
+        "titulo": str(titulo).strip()[:120] if titulo else "Prato do dia",
+        "descricao": str(descricao).strip()[:300] if descricao else "",
+        "passos": passos[:8],
+        "ingredientes_necessarios": list(dict.fromkeys(ingredientes))[:20],
+    }
 
 
 def _gerar_canned(have_list):
@@ -76,6 +98,6 @@ def gerar_receita(have_list):
     if _tem_llm():
         try:
             return _gerar_llm(have_list)
-        except Exception as e:  # rede/chave/modelo — cai no modelo offline
-            print(f"[recipe] LLM falhou ({e}); uso a receita-modelo.")
+        except Exception as e:  # rede/chave/modelo/JSON invalido — cai no modelo offline
+            print(f"[recipe] LLM falhou ({type(e).__name__}: {e}); uso a receita-modelo.")
     return _gerar_canned(have_list)
