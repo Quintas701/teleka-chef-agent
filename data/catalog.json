@@ -4,30 +4,55 @@
     {
       "id": "v1",
       "nome": "Mercado Kianda",
+      "bairro": "Ilha de Luanda",
       "email": "sb-kianda-business@teleka.example",
       "produtos": [
-        { "id": "p1",  "nome": "Arroz (1 kg)",        "preco": 2.50, "tags": ["arroz", "rice"] },
-        { "id": "p2",  "nome": "Cebola (500 g)",      "preco": 0.80, "tags": ["cebola", "onion"] },
-        { "id": "p3",  "nome": "Alho (cabeca)",       "preco": 0.60, "tags": ["alho", "garlic"] },
-        { "id": "p4",  "nome": "Azeite (500 ml)",     "preco": 4.00, "tags": ["azeite", "oleo", "olive oil", "oil"] },
-        { "id": "p5",  "nome": "Sal (1 kg)",          "preco": 0.50, "tags": ["sal", "salt"] },
-        { "id": "p6",  "nome": "Batata (1 kg)",       "preco": 1.10, "tags": ["batata", "potato"] },
-        { "id": "p7",  "nome": "Ovos (duzia)",        "preco": 1.80, "tags": ["ovo", "ovos", "egg", "eggs"] },
-        { "id": "p8",  "nome": "Farinha (1 kg)",      "preco": 0.90, "tags": ["farinha", "flour"] }
+        { "id": "p1",  "nome": "Arroz (1 kg)",          "nome_en": "Rice (1 kg)",            "preco": 2.50, "tags": ["arroz", "rice"] },
+        { "id": "p2",  "nome": "Cebola (500 g)",        "nome_en": "Onions (500 g)",         "preco": 0.80, "tags": ["cebola", "onion"] },
+        { "id": "p3",  "nome": "Alho (cabeça)",         "nome_en": "Garlic (bulb)",          "preco": 0.60, "tags": ["alho", "garlic"] },
+        { "id": "p4",  "nome": "Azeite (500 ml)",       "nome_en": "Olive oil (500 ml)",     "preco": 4.00, "tags": ["azeite", "oleo", "óleo", "olive oil", "oil", "azeite de oliva"] },
+        { "id": "p5",  "nome": "Sal (1 kg)",            "nome_en": "Salt (1 kg)",            "preco": 0.50, "tags": ["sal", "salt"] },
+        { "id": "p6",  "nome": "Batata (1 kg)",         "nome_en": "Potatoes (1 kg)",        "preco": 1.10, "tags": ["batata", "potato"] },
+        { "id": "p7",  "nome": "Ovos (dúzia)",          "nome_en": "Eggs (dozen)",           "preco": 1.80, "tags": ["ovo", "egg"] },
+        { "id": "p8",  "nome": "Farinha de trigo (1 kg)", "nome_en": "Wheat flour (1 kg)",   "preco": 0.90, "tags": ["farinha", "flour", "farinha de trigo", "wheat flour"] },
+        { "id": "p16", "nome": "Pimenta preta (moída)", "nome_en": "Black pepper (ground)",  "preco": 1.20, "tags": ["pimenta", "pimenta preta", "black pepper", "pepper", "pimenta-do-reino"] },
+        { "id": "p17", "nome": "Leite (1 L)",           "nome_en": "Milk (1 L)",             "preco": 1.00, "tags": ["leite", "milk"] },
+        { "id": "p18", "nome": "Manteiga (250 g)",      "nome_en": "Butter (250 g)",         "preco": 2.20, "tags": ["manteiga", "butter"] },
+        { "id": "p19", "nome": "Açúcar (1 kg)",         "nome_en": "Sugar (1 kg)",           "preco": 1.10, "tags": ["acucar", "sugar"] },
+        { "id": "p20", "nome": "Massa esparguete (500 g)", "nome_en": "Spaghetti (500 g)",   "preco": 1.30, "tags": ["massa", "esparguete", "pasta", "spaghetti"] }
       ]
     },
     {
       "id": "v2",
       "nome": "Peixaria & Horta do Porto",
+      "bairro": "Porto",
       "email": "sb-porto-business@teleka.example",
       "produtos": [
-        { "id": "p9",  "nome": "Filete de peixe (500 g)", "preco": 6.00, "tags": ["peixe", "fish"] },
-        { "id": "p10", "nome": "Tomate (500 g)",          "preco": 1.20, "tags": ["tomate", "tomato"] },
-        { "id": "p11", "nome": "Limao (3 un)",            "preco": 0.50, "tags": ["limao", "lemon"] },
-        { "id": "p12", "nome": "Coentros (molho)",        "preco": 0.70, "tags": ["coentros", "coentro", "cilantro"] },
-        { "id": "p13", "nome": "Frango (1 kg)",           "preco": 4.50, "tags": ["frango", "chicken"] },
-        { "id": "p14", "nome": "Pimento (2 un)",          "preco": 1.00, "tags": ["pimento", "pepper"] },
-        { "id": "p15", "nome": "Cenoura (500 g)",         "preco": 0.90, "tags": ["cenoura", "carrot"] }
+        { "id": "p9",  "nome": "Filete de peixe (500 g)", "nome_en": "Fish fillet (500 g)",  "preco": 6.00, "tags": ["peixe", "fish", "peixe branco", "white fish", "filete de peixe", "fish fillet", "garoupa", "corvina"] },
+        { "id": "p10", "nome": "Tomate (500 g)",        "nome_en": "Tomatoes (500 g)",       "preco": 1.20, "tags": ["tomate", "tomato"] },
+        { "id": "p11", "nome": "Limão (3 un)",          "nome_en": "Lemons (3)",             "preco": 0.50, "tags": ["limao", "lemon", "lima", "lime"] },
+        { "id": "p12", "nome": "Coentros (molho)",      "nome_en": "Coriander (bunch)",      "preco": 0.70, "tags": ["coentros", "coentro", "cilantro", "coriander"] },
+        { "id": "p13", "nome": "Frango (1 kg)",         "nome_en": "Chicken (1 kg)",         "preco": 4.50, "tags": ["frango", "chicken", "galinha"] },
+        { "id": "p14", "nome": "Pimento (2 un)",        "nome_en": "Bell peppers (2)",       "preco": 1.00, "tags": ["pimento", "bell pepper", "pimentao"] },
+        { "id": "p15", "nome": "Cenoura (500 g)",       "nome_en": "Carrots (500 g)",        "preco": 0.90, "tags": ["cenoura", "carrot"] },
+        { "id": "p21", "nome": "Salsa (molho)",         "nome_en": "Parsley (bunch)",        "preco": 0.60, "tags": ["salsa", "parsley", "salsinha"] },
+        { "id": "p22", "nome": "Queijo (200 g)",        "nome_en": "Cheese (200 g)",         "preco": 2.80, "tags": ["queijo", "cheese"] }
+      ]
+    },
+    {
+      "id": "v3",
+      "nome": "Quitanda da Dona Rosa",
+      "bairro": "Viana, Luanda",
+      "email": "sb-rosa-business@teleka.example",
+      "produtos": [
+        { "id": "p23", "nome": "Fuba de bombó (1 kg)",  "nome_en": "Cassava flour — fuba (1 kg)", "preco": 1.40, "tags": ["fuba", "funge", "cassava flour", "fuba de bombo", "farinha de mandioca"] },
+        { "id": "p24", "nome": "Óleo de palma (500 ml)", "nome_en": "Red palm oil (500 ml)", "preco": 2.60, "tags": ["oleo de palma", "palm oil", "dende", "dendem", "red palm oil"] },
+        { "id": "p25", "nome": "Gindungo (frasco)",     "nome_en": "Gindungo chili (jar)",   "preco": 1.50, "tags": ["gindungo", "piri-piri", "piripiri", "chili", "malagueta", "chili pepper"] },
+        { "id": "p26", "nome": "Feijão (1 kg)",         "nome_en": "Beans (1 kg)",           "preco": 1.60, "tags": ["feijao", "bean", "feijao de oleo de palma"] },
+        { "id": "p27", "nome": "Mandioca (1 kg)",       "nome_en": "Cassava (1 kg)",         "preco": 1.00, "tags": ["mandioca", "cassava", "aipim"] },
+        { "id": "p28", "nome": "Quiabo (300 g)",        "nome_en": "Okra (300 g)",           "preco": 1.30, "tags": ["quiabo", "okra", "gombo"] },
+        { "id": "p29", "nome": "Gengibre (100 g)",      "nome_en": "Ginger (100 g)",         "preco": 0.70, "tags": ["gengibre", "ginger"] },
+        { "id": "p30", "nome": "Couve (molho)",         "nome_en": "Collard greens (bunch)", "preco": 0.80, "tags": ["couve", "kale", "collard greens", "gimboa"] }
       ]
     }
   ]

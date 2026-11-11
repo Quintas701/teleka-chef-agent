@@ -28,6 +28,7 @@ if aviso_configuracao():
 
 class PedidoIn(BaseModel):
     pedido: str = Field(min_length=1, max_length=500)
+    lang: str = Field(default="en", pattern="^(en|pt)$")
 
 
 class ConfirmarIn(BaseModel):
@@ -51,12 +52,18 @@ def index():
     return FileResponse(os.path.join(BASE, "static", "index.html"))
 
 
+@app.get("/logo.svg")
+def logo():
+    return FileResponse(os.path.join(BASE, "static", "logo.svg"), media_type="image/svg+xml")
+
+
 @app.get("/api/estado")
 def estado():
     return {
         "paypal": paypal_estado(),
         "paypal_aviso": aviso_configuracao(),
         "ia": "configurada" if _tem_llm() else "modelo offline",
+        "ia_modelo": os.getenv("LLM_MODEL", "openai/gpt-oss-120b") if _tem_llm() else None,
     }
 
 
@@ -65,7 +72,7 @@ def gerar(inp: PedidoIn, request: Request):
     # A PayPal devolve o comprador a esta pagina com ?token=<order_id> depois de aprovar.
     base = str(request.base_url).rstrip("/")
     return agent.processar(inp.pedido, return_url=f"{base}/?paypal=aprovado",
-                           cancel_url=f"{base}/?paypal=cancelado")
+                           cancel_url=f"{base}/?paypal=cancelado", lang=inp.lang)
 
 
 @app.post("/api/confirmar")

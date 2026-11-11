@@ -1,0 +1,39 @@
+<svg viewBox="0 0 240 260" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="T" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#FF6B9D"/>
+      <stop offset="100%" stop-color="#CC1144"/>
+    </linearGradient>
+    <!-- visible at base, fades to nothing as height increases -->
+    <linearGradient id="fog" x1="120" y1="132" x2="120" y2="4" gradientUnits="userSpaceOnUse">
+      <stop offset="0%"   stop-color="#FF3366" stop-opacity="0.62"/>
+      <stop offset="45%"  stop-color="#FF3366" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#FF3366" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- 8 filaments — thick & visible at T bar, dissolving upward -->
+
+  <path d="M 26 132 C 10 114, 32 92, 16 70 C 4 50, 18 28, 22 8"
+        fill="none" stroke="url(#fog)" stroke-width="4"   stroke-linecap="round"/>
+  <path d="M 48 132 C 64 112, 36 90, 52 68 C 64 48, 48 26, 44 8"
+        fill="none" stroke="url(#fog)" stroke-width="5"   stroke-linecap="round"/>
+  <path d="M 72 132 C 54 110, 80 88, 62 64 C 48 42, 66 20, 72 6"
+        fill="none" stroke="url(#fog)" stroke-width="5"   stroke-linecap="round"/>
+  <!-- pair almost touching -->
+  <path d="M 96 132 C 80 112, 104 90, 84 66 C 68 44, 86 22, 92 6"
+        fill="none" stroke="url(#fog)" stroke-width="6"   stroke-linecap="round"/>
+  <path d="M 106 132 C 122 112, 98 90, 116 66 C 130 44, 112 22, 104 6"
+        fill="none" stroke="url(#fog)" stroke-width="6"   stroke-linecap="round"/>
+  <path d="M 138 132 C 118 108, 158 84, 128 58 C 108 36, 128 14, 138 4"
+        fill="none" stroke="url(#fog)" stroke-width="7"   stroke-linecap="round"/>
+  <path d="M 172 132 C 188 110, 158 88, 176 64 C 190 42, 172 20, 168 6"
+        fill="none" stroke="url(#fog)" stroke-width="5"   stroke-linecap="round"/>
+  <path d="M 210 132 C 226 112, 200 90, 218 68 C 232 48, 216 28, 212 8"
+        fill="none" stroke="url(#fog)" stroke-width="4"   stroke-linecap="round"/>
+
+  <!-- T bar -->
+  <rect x="16"  y="132" width="208" height="40" rx="20" fill="url(#T)"/>
+  <!-- T stem -->
+  <rect x="104" y="171" width="32"  height="82" rx="14" fill="url(#T)"/>
+</svg>

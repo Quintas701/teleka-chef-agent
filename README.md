@@ -13,16 +13,46 @@ layer, runnable on its own.
 
 ## What it does (the flow)
 
-```
-pedido → receita (IA) → carrinho (vendedores locais) → PayPal (sandbox) → vendedor pago → coleção
+```mermaid
+flowchart LR
+  A["You: 'I have rice,<br/>tomato and fish'"] --> B[parse_request]
+  B --> C["generate_recipe<br/>(LLM, validated)"]
+  C --> D["check_pantry<br/>(plurals, accents,<br/>PT↔EN)"]
+  D --> E["search_marketplace<br/>(3 local vendors)"]
+  E --> F["create_paypal_order<br/>Orders v2"]
+  F -->|buyer approves on PayPal| G["capture_payment"]
+  G --> H["verify_amount<br/>(to the cent)"]
+  H --> I["pay_vendors<br/>Payouts v1"]
+  I --> J["Teleka collection<br/>(social loop)"]
 ```
 
-1. **You:** "tenho arroz, tomate e peixe"
-2. **Recipe tool (AI):** generates a dish + the full ingredient list
-3. **Catalog tool:** finds the missing ingredients across local vendors, builds a cart
-4. **PayPal — Orders:** the agent creates the order and the buyer approves
-5. **PayPal — Payouts:** each vendor is paid their share
-6. **Social loop:** the purchase becomes a "collection" on the profile
+1. **You:** "I have rice, tomato and fish" (or in Portuguese: "tenho arroz, tomate e peixe")
+2. **Recipe tool (AI):** generates a dish + the full ingredient list, in your language
+3. **Pantry check:** skips what you already have, even across languages
+   ("arroz" typed by you == "rice" from the AI), and never sells you tap water
+4. **Catalog tool:** finds the missing ingredients across three local vendors
+   (Luanda and Porto — including Angolan staples like *fuba*, *gindungo* and palm oil)
+5. **PayPal — Orders:** the agent creates the order and the buyer approves on PayPal
+6. **PayPal — Payouts:** after the captured amount is verified, each vendor is paid their share
+7. **Social loop:** the purchase becomes a "collection" on the buyer's Teleka profile
+
+### The agent shows its work
+
+Every tool call is recorded in a **trace** (`tool`, structured `data`, `ms`) that is
+returned by the API and rendered in the UI as **Agent activity** — the judge sees
+exactly which tool ran, with what result, and how long it took (illustrative run,
+sandbox mode):
+
+```
+parse_request        Understood 3 ingredient(s): rice, tomato, fish        0 ms
+generate_recipe      "Grilled fish with tomato rice" · 9 ingredients ·    1900 ms
+check_pantry         You have 3 · missing 6                                0 ms
+search_marketplace   6 product(s) from Mercado Kianda, ... · 8.40 USD      1 ms
+create_paypal_order  Orders API v2 → 5XK... · PAYER_ACTION_REQUIRED      620 ms
+capture_payment      Orders API v2 capture → 3HU... · COMPLETED          740 ms
+verify_amount        expected 8.40 USD · captured 8.40 USD · match ✓       0 ms
+pay_vendors          Payouts API v1 → 2 vendor(s) · batch ... · PENDING  580 ms
+```
 
 ## PayPal + AI (for the judges)
 
@@ -41,13 +71,20 @@ pedido → receita (IA) → carrinho (vendedores locais) → PayPal (sandbox) �
   capture, `sender_batch_id = order_id` on payouts, plus a per-order lock), and
   vendors are paid only after the captured amount matches the cart to the cent.
 
+## The Teleka look
+
+The UI uses Teleka's real design tokens (primary `#FF3366` → `#FF6B9D` gradient,
+deep navy dark theme `#0B0F1A`, Inter), the Teleka logo, light/dark following the
+system, and an **EN / PT** switch (English by default) — the recipe, the cart and the
+agent trace all follow the chosen language.
+
 ## Quickstart (zero keys — runs offline in mock mode)
 
 ```bash
 pip install -r requirements.txt
 
 # A) teste rápido por linha de comandos
-python run_demo.py "tenho arroz, tomate e peixe"
+python run_demo.py "I have rice, tomato and fish"
 
 # B) a demo web (para gravar o vídeo)
 uvicorn app:app --reload
@@ -84,8 +121,9 @@ pip install -r requirements-dev.txt
 pytest
 ```
 
-14 offline tests, including the sandbox path against a simulated PayPal API:
-tampered carts, double confirmation, unapproved orders, capture/amount mismatch.
+17 offline tests, including the sandbox path against a simulated PayPal API:
+tampered carts, double confirmation, unapproved orders, capture/amount mismatch,
+the cross-language pantry check, and the agent trace.
 
 ## Project layout
 
@@ -100,8 +138,9 @@ tools/
   catalog.py      mock marketplace search (data/catalog.json)
   paypal.py       PayPal sandbox: Orders + Payouts (with mock mode)
   images.py       free dish image (Pollinations URL, client-side)
-static/index.html the demo UI (Teleka colours)
-data/catalog.json mock vendors + products
+static/index.html the demo UI (Teleka theme, EN/PT, agent activity timeline)
+static/logo.svg   Teleka logo
+data/catalog.json mock vendors (Luanda + Porto) + bilingual products
 ```
 
 ## From demo to production

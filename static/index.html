@@ -1,106 +1,298 @@
 <!doctype html>
-<html lang="pt">
+<html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Teleka Chef Agent</title>
+<meta name="description" content="Agentic food commerce on PayPal: an AI agent turns what's in your kitchen into a recipe, a cart from local vendors, a PayPal payment and a settled vendor." />
+<link rel="icon" href="/logo.svg" type="image/svg+xml" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet" />
 <style>
+  /* Teleka design tokens (teleka-website/tailwind.config.ts) */
   :root{
-    --espresso:#1C1410; --coral:#E8562A; --basil:#2F6D5C;
-    --cream:#FBF7F2; --card:#FFFFFF; --line:#EADFD3; --muted:#7A6E63;
+    --primary:#FF3366; --primary-dark:#CC1144; --primary-light:#FF6B9D;
+    --grad:linear-gradient(135deg,#FF3366 0%,#FF6B9D 100%);
+    --bg:#0B0F1A; --deeper:#070A14; --card:#121826; --card2:#1E293B; --border:#263246;
+    --text:#F1F5F9; --sub:#CBD5E1; --muted:#8392A8;
+    --ok:#10B981; --ok-bg:#10B98122; --warn:#F59E0B;
+    --pp-gold:#FFC439; --pp-blue:#003087;
+    --glow:0 0 40px #FF336630, 0 0 80px #FF336615;
   }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#F8F9FA; --deeper:#EEF0F3; --card:#FFFFFF; --card2:#F3F4F6; --border:#E5E7EB;
+      --text:#1F2937; --sub:#4B5563; --muted:#6B7280; --glow:0 8px 30px #FF336622;
+    }
+  }
+  :root[data-theme="dark"]{ --bg:#0B0F1A; }
   *{box-sizing:border-box}
-  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-       background:var(--cream);color:var(--espresso);line-height:1.5}
-  .wrap{max-width:720px;margin:0 auto;padding:24px 16px 64px}
-  header{display:flex;align-items:center;gap:12px;margin-bottom:4px}
-  .logo{width:40px;height:40px;border-radius:12px;background:var(--coral);display:flex;
-        align-items:center;justify-content:center;font-size:22px}
-  h1{font-size:22px;margin:0}
-  .sub{color:var(--muted);margin:2px 0 18px;font-size:14px}
-  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
-  .badge{font-size:12px;padding:4px 10px;border-radius:999px;background:#F1E8DE;color:var(--muted)}
-  .badge b{color:var(--basil)}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:16px}
-  label{font-weight:600;font-size:14px;display:block;margin-bottom:8px}
-  textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:12px;font-size:15px;
-           font-family:inherit;resize:vertical;min-height:64px;background:#fff}
+  html{-webkit-text-size-adjust:100%}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:var(--bg);
+       color:var(--text);line-height:1.5;min-height:100vh;
+       background-image:radial-gradient(ellipse 80% 40% at 50% -5%,#FF336630 0%,transparent 70%);background-repeat:no-repeat}
+  .wrap{max-width:860px;margin:0 auto;padding:20px 16px 72px}
+  code,.mono{font-family:"JetBrains Mono",ui-monospace,Consolas,monospace;font-size:.86em}
+
+  /* header */
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:28px}
+  .brand{display:flex;align-items:center;gap:10px;text-decoration:none;color:inherit}
+  .brand img{width:38px;height:42px}
+  .word{font-weight:800;letter-spacing:.32em;font-size:18px;background:var(--grad);-webkit-background-clip:text;
+        background-clip:text;color:transparent}
+  .tag{font-size:11px;color:var(--muted);letter-spacing:.08em;text-transform:uppercase;margin-top:-2px}
+  .lang{display:flex;border:1px solid var(--border);border-radius:999px;padding:3px;background:var(--card)}
+  .lang button{border:0;background:transparent;color:var(--muted);font:600 12px Inter,sans-serif;padding:6px 12px;
+               border-radius:999px;cursor:pointer}
+  .lang button.on{background:var(--grad);color:#fff}
+
+  /* hero */
+  .eyebrow{display:inline-flex;gap:8px;align-items:center;font-size:12px;font-weight:600;color:var(--primary-light);
+           background:#FF33661A;border:1px solid #FF336640;padding:5px 12px;border-radius:999px;margin-bottom:14px}
+  h1{font-size:clamp(28px,5vw,42px);line-height:1.1;margin:0 0 12px;font-weight:800;letter-spacing:-.02em}
+  h1 .g{background:var(--grad);-webkit-background-clip:text;background-clip:text;color:transparent}
+  .lead{color:var(--sub);font-size:16px;margin:0 0 18px;max-width:640px}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+  .badge{font-size:12px;padding:5px 11px;border-radius:999px;background:var(--card);border:1px solid var(--border);color:var(--muted)}
+  .badge b{color:var(--text);font-weight:600}
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--ok);margin-right:6px;vertical-align:1px}
+
+  /* flow stepper */
+  .flow{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:0 0 22px}
+  .st{text-align:center;font-size:11px;color:var(--muted);font-weight:600}
+  .st .bar{height:4px;border-radius:4px;background:var(--border);margin-bottom:7px;transition:background .4s}
+  .st.done .bar{background:var(--grad)} .st.done{color:var(--text)}
+  .st.now .bar{background:var(--primary);box-shadow:0 0 12px var(--primary)} .st.now{color:var(--primary-light)}
+
+  /* cards */
+  .card{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:20px;margin-bottom:16px}
+  .card.hero-in{box-shadow:var(--glow)}
+  label.q{font-weight:700;font-size:15px;display:block;margin-bottom:10px}
+  textarea{width:100%;border:1px solid var(--border);border-radius:14px;padding:14px;font:16px Inter,sans-serif;
+           color:var(--text);background:var(--card2);resize:vertical;min-height:70px;outline:none}
+  textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px #FF336633}
   .chips{display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 0}
-  .chip{font-size:12px;padding:5px 10px;border-radius:999px;border:1px solid var(--line);
-        background:#fff;cursor:pointer;color:var(--muted);font-weight:400}
-  button{font-family:inherit;font-weight:600;border:0;border-radius:12px;padding:12px 18px;
-         font-size:15px;cursor:pointer}
-  .primary{background:var(--coral);color:#fff;width:100%;margin-top:14px}
-  .primary:disabled{opacity:.5;cursor:default}
-  .pay{background:#0070BA;color:#fff;width:100%;margin-top:6px}
-  .hidden{display:none}
-  .dish{display:flex;gap:14px;align-items:flex-start}
-  .dish img{width:120px;height:120px;border-radius:12px;object-fit:cover;background:#F1E8DE;flex:0 0 auto}
-  .dish .ph{width:120px;height:120px;border-radius:12px;background:#F1E8DE;display:flex;
-            align-items:center;justify-content:center;font-size:40px}
-  h2{font-size:17px;margin:0 0 4px}
-  ol{margin:10px 0 0;padding-left:18px;color:#3a322c;font-size:14px}
-  ol li{margin-bottom:3px}
-  table{width:100%;border-collapse:collapse;margin-top:6px;font-size:14px}
-  td{padding:8px 0;border-bottom:1px solid var(--line)}
-  td.r{text-align:right;white-space:nowrap}
-  .vend{color:var(--muted);font-size:12px}
-  .total{display:flex;justify-content:space-between;font-weight:700;margin-top:12px;font-size:16px}
-  .ok{border-color:var(--basil)}
-  .ok h2{color:var(--basil)}
-  .pill{display:inline-block;font-size:12px;padding:2px 8px;border-radius:999px;background:#E7F0ec;color:var(--basil)}
-  .muted{color:var(--muted);font-size:13px}
-  .spin{display:inline-block;width:16px;height:16px;border:2px solid #fff;border-top-color:transparent;
-        border-radius:50%;animation:s .7s linear infinite;vertical-align:-3px;margin-right:6px}
+  .chip{font:500 12px Inter,sans-serif;padding:6px 11px;border-radius:999px;border:1px solid var(--border);
+        background:transparent;cursor:pointer;color:var(--sub)}
+  .chip:hover{border-color:var(--primary);color:var(--text)}
+  .btn{font:700 15px Inter,sans-serif;border:0;border-radius:14px;padding:14px 18px;cursor:pointer;width:100%;
+       display:flex;align-items:center;justify-content:center;gap:8px}
+  .btn:disabled{opacity:.6;cursor:default}
+  .primary{background:var(--grad);color:#fff;margin-top:14px;box-shadow:0 8px 24px #FF336640}
+  .paypal{background:var(--pp-gold);color:#111;margin-top:14px}
+  .paypal b{color:var(--pp-blue);font-style:italic;font-weight:800;letter-spacing:-.01em}
+  .paypal b i{color:#009CDE}
+  .ghost{background:transparent;color:var(--sub);border:1px solid var(--border);margin-top:8px;font-size:13px;padding:10px}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid currentColor;border-top-color:transparent;
+        border-radius:50%;animation:s .7s linear infinite}
   @keyframes s{to{transform:rotate(360deg)}}
-  .erro{border-color:#E8A08A;background:#FFF6F2}
-  .chip:hover{border-color:var(--coral);color:var(--espresso)}
-  .flow{font-size:12px;color:var(--muted);margin-top:14px;text-align:center}
+  .grid{display:grid;grid-template-columns:1.25fr 1fr;gap:16px}
+  @media (max-width:760px){.grid{grid-template-columns:1fr}.flow{grid-template-columns:repeat(3,1fr)}}
+  h2{font-size:17px;margin:0 0 4px;font-weight:700}
+  h3{font-size:12px;margin:16px 0 8px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700}
+  .muted{color:var(--muted);font-size:13px}
+
+  /* recipe */
+  .dish{display:flex;gap:14px;align-items:flex-start}
+  .dish .img,.dish img{width:112px;height:112px;border-radius:16px;object-fit:cover;background:var(--card2);flex:0 0 auto;
+             display:flex;align-items:center;justify-content:center;font-size:40px}
+  .engine{display:inline-block;font-size:11px;margin-top:8px;padding:3px 9px;border-radius:999px;background:#FF33661A;color:var(--primary-light)}
+  ol{margin:6px 0 0;padding-left:20px;color:var(--sub);font-size:14px} ol li{margin-bottom:4px}
+  .ings{display:flex;flex-wrap:wrap;gap:6px}
+  .ing{font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid var(--border);color:var(--sub)}
+  .ing.have{border-color:#10B98155;color:var(--ok);background:var(--ok-bg)}
+  .ing.buy{border-color:#FF336655;color:var(--primary-light);background:#FF336614}
+  .ing.na{opacity:.55;text-decoration:line-through}
+
+  /* cart */
+  .vendor{border:1px solid var(--border);border-radius:14px;padding:10px 12px;margin-bottom:8px}
+  .vh{display:flex;justify-content:space-between;font-weight:600;font-size:13px}
+  .vh span{color:var(--muted);font-weight:500}
+  .line{display:flex;justify-content:space-between;font-size:14px;padding:4px 0;color:var(--sub)}
+  .total{display:flex;justify-content:space-between;font-weight:800;margin-top:10px;font-size:18px}
+  .secure{font-size:12px;color:var(--muted);margin-top:10px;display:flex;gap:6px;align-items:flex-start}
+
+  /* agent trace */
+  .trace{list-style:none;margin:0;padding:0;position:relative}
+  .trace li{position:relative;padding:0 0 14px 26px;opacity:0;transform:translateY(6px);animation:in .35s forwards}
+  .trace li::before{content:"";position:absolute;left:6px;top:20px;bottom:0;width:2px;background:var(--border)}
+  .trace li:last-child::before{display:none}
+  .trace .n{position:absolute;left:0;top:3px;width:14px;height:14px;border-radius:50%;background:var(--grad);box-shadow:0 0 10px #FF336680}
+  .trace .tool{font-family:"JetBrains Mono",monospace;font-size:12.5px;color:var(--primary-light)}
+  .trace .ms{float:right;font-size:11px;color:var(--muted);font-family:"JetBrains Mono",monospace}
+  .trace .d{font-size:13px;color:var(--sub)}
+  .trace .bad .n{background:var(--warn)}
+  @keyframes in{to{opacity:1;transform:none}}
+
+  /* success + collection */
+  .ok{border-color:#10B98166}
+  .ok h2{color:var(--ok)}
+  .pill{display:inline-block;font-size:11px;padding:2px 8px;border-radius:999px;background:var(--ok-bg);color:var(--ok);font-weight:600}
+  .post{border:1px solid var(--border);border-radius:18px;overflow:hidden;background:var(--card2)}
+  .post .ph{display:flex;gap:10px;align-items:center;padding:12px}
+  .avatar{width:34px;height:34px;border-radius:50%;background:var(--grad);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800}
+  .post .pimg{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--card)}
+  .post .pb{padding:12px;font-size:14px}
+  .post .acts{display:flex;gap:16px;color:var(--muted);font-size:13px;margin-top:8px}
+  .erro{border-color:#F59E0B88}
+  footer{text-align:center;color:var(--muted);font-size:12px;margin-top:28px}
+  footer a{color:var(--primary-light);text-decoration:none}
+  .hidden{display:none}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <div class="logo">🍲</div>
-    <div>
-      <h1>Teleka Chef Agent</h1>
+    <a class="brand" href="https://www.teleka.org" target="_blank" rel="noopener">
+      <img src="/logo.svg" alt="Teleka" />
+      <div><div class="word">TELEKA</div><div class="tag">Chef Agent</div></div>
+    </a>
+    <div class="lang" role="group" aria-label="Language">
+      <button type="button" data-lang="en">EN</button>
+      <button type="button" data-lang="pt">PT</button>
     </div>
   </header>
-  <div class="sub">Diz o que tens na cozinha. A IA cria a receita, monta o carrinho com vendedores locais e paga pela PayPal.</div>
 
-  <div class="badges" id="badges">
-    <span class="badge">PayPal: <b id="b-paypal">…</b></span>
-    <span class="badge">IA: <b id="b-ia">…</b></span>
+  <div class="eyebrow" data-i18n="eyebrow"></div>
+  <h1 data-i18n-html="title"></h1>
+  <p class="lead" data-i18n="lead"></p>
+
+  <div class="badges">
+    <span class="badge"><span class="dot" id="dot-pp"></span>PayPal: <b id="b-paypal">…</b></span>
+    <span class="badge"><span class="dot" id="dot-ia"></span><span data-i18n="ai"></span>: <b id="b-ia">…</b></span>
   </div>
 
-  <div class="card">
-    <label for="pedido">O que tens em casa?</label>
-    <textarea id="pedido" placeholder="ex.: tenho arroz, tomate e peixe">tenho arroz, tomate e peixe</textarea>
+  <div class="flow" id="flow"></div>
+
+  <div class="card hero-in">
+    <label class="q" for="pedido" data-i18n="ask"></label>
+    <textarea id="pedido"></textarea>
     <div class="chips" id="chips"></div>
-    <button class="primary" id="go">Gerar receita e carrinho</button>
+    <button class="btn primary" id="go"></button>
   </div>
 
   <div id="resultado"></div>
   <div id="confirmacao"></div>
 
-  <div class="flow">pedido → receita → carrinho → PayPal (sandbox) → vendedor pago → coleção</div>
+  <footer>
+    <span data-i18n="footer"></span> · <a href="https://www.teleka.org" target="_blank" rel="noopener">teleka.org</a>
+  </footer>
 </div>
 
 <script>
 const $ = (id) => document.getElementById(id);
-let ultimo = null;
-
-// Tudo o que vem do servidor (e do LLM, que o utilizador pode influenciar) e texto, nunca HTML.
 const esc = (v) => String(v ?? "").replace(/[&<>"']/g,
   c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-function money(v, m){ return Number(v).toFixed(2) + " " + esc(m); }
 function guardar(k, v){ try{ sessionStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function ler(k){ try{ return JSON.parse(sessionStorage.getItem(k)); }catch(e){ return null; } }
-function erroCard(msg){ return `<div class="card erro"><b>Algo correu mal.</b><div class="muted">${esc(msg)}</div></div>`; }
+
+const I18N = {
+  en: {
+    eyebrow: "PayPal AI Hackathon · Agentic Commerce",
+    title: 'From what’s in your kitchen<br><span class="g">to a paid local vendor.</span>',
+    lead: "Tell the agent what you have. It writes a recipe, fills a cart from local vendors, checks out with PayPal and settles every vendor — and you approve before any money moves.",
+    ai: "AI", ask: "What do you have at home?", placeholder: "e.g. I have rice, tomato and fish",
+    examples: ["I have rice, tomato and fish", "chicken, potatoes and carrots", "cassava flour and fish", "eggs, flour and milk"],
+    go: "Cook up a recipe & cart", thinking: "Agent is working…",
+    steps: ["Ask", "AI recipe", "Local cart", "PayPal", "Vendors paid", "Collection"],
+    recipe: "Recipe", ingredients: "Ingredients", have: "you have", buy: "buying", na: "not sold nearby",
+    cart: "Cart from local vendors", subtotal: "subtotal", total: "Total", nothing: "You already have everything — nothing to buy.",
+    pay: 'Pay with <b>Pay<i>Pal</i></b>', payMock: 'Pay with <b>Pay<i>Pal</i></b> <span style="font-weight:500">(demo mode)</span>',
+    opening: "Opening PayPal…", paying: "Capturing & settling vendors…", retry: "Try again",
+    secure: "Prices and payees come from the server, never the browser. You approve on PayPal; vendors are paid only after the captured amount matches the cart to the cent.",
+    activity: "Agent activity", activitySub: "every tool call, with real data and timing",
+    paid: "✓ Payment complete", capture: "Capture", settled: "Vendors settled", verified: "amount verified",
+    collection: "Your new Teleka collection", collectionSub: "preview of the post on your profile",
+    you: "You", cookedWith: "Cooked with ingredients from", likes: "likes", comments: "comments", save: "Save",
+    cancelled: "Payment cancelled.", cancelledSub: "Nothing was charged. You can try again.",
+    wrong: "Something went wrong.", offline: "offline template", noconn: "offline",
+    footer: "A focused slice of Teleka, the food social-commerce platform",
+    t: {
+      parse_request: d => `Understood ${d.ingredients.length} ingredient(s): ${d.ingredients.join(", ")}`,
+      generate_recipe: d => `“${d.title}” · ${d.ingredients} ingredients · ${d.engine}`,
+      check_pantry: d => `You have ${d.have.length} · missing ${d.missing.length}` + (d.skipped.length ? ` · skipped ${d.skipped.join(", ")} (tap)` : ""),
+      search_marketplace: d => `${d.found} product(s) from ${d.vendors.join(", ") || "—"} · ${d.total}` + (d.not_found.length ? ` · not sold: ${d.not_found.join(", ")}` : ""),
+      create_paypal_order: d => `Orders API v2 → ${d.order_id} · ${d.amount} · ${d.status} (${d.mode})`,
+      capture_payment: d => `Orders API v2 capture → ${d.capture_id} · ${d.status}`,
+      verify_amount: d => `expected ${d.expected} · captured ${d.captured} · ${d.match ? "match ✓" : "MISMATCH"}`,
+      pay_vendors: d => `Payouts API v1 → ${d.vendors} vendor(s) · batch ${d.batch_id} · ${d.status} · ${d.total}`,
+    },
+  },
+  pt: {
+    eyebrow: "PayPal AI Hackathon · Comércio Agêntico",
+    title: 'Do que tens na cozinha<br><span class="g">a um vendedor local pago.</span>',
+    lead: "Diz ao agente o que tens. Ele cria a receita, monta o carrinho com vendedores locais, paga com a PayPal e liquida cada vendedor — e és tu que aprovas antes de o dinheiro se mexer.",
+    ai: "IA", ask: "O que tens em casa?", placeholder: "ex.: tenho arroz, tomate e peixe",
+    examples: ["tenho arroz, tomate e peixe", "frango, batata e cenoura", "fuba e peixe", "ovos, farinha e leite"],
+    go: "Criar receita e carrinho", thinking: "O agente está a trabalhar…",
+    steps: ["Pedido", "Receita IA", "Carrinho local", "PayPal", "Vendedores pagos", "Coleção"],
+    recipe: "Receita", ingredients: "Ingredientes", have: "já tens", buy: "a comprar", na: "sem vendedor perto",
+    cart: "Carrinho de vendedores locais", subtotal: "subtotal", total: "Total", nothing: "Já tens tudo — nada a comprar.",
+    pay: 'Pagar com <b>Pay<i>Pal</i></b>', payMock: 'Pagar com <b>Pay<i>Pal</i></b> <span style="font-weight:500">(modo demo)</span>',
+    opening: "A abrir a PayPal…", paying: "A capturar e a pagar aos vendedores…", retry: "Tentar de novo",
+    secure: "Preços e destinatários saem do servidor, nunca do browser. Aprovas na PayPal; os vendedores só são pagos depois de o valor capturado bater com o carrinho ao cêntimo.",
+    activity: "Atividade do agente", activitySub: "cada ferramenta chamada, com dados e tempos reais",
+    paid: "✓ Pagamento concluído", capture: "Captura", settled: "Vendedores pagos", verified: "valor verificado",
+    collection: "A tua nova coleção Teleka", collectionSub: "pré-visualização do post no teu perfil",
+    you: "Tu", cookedWith: "Cozinhado com ingredientes de", likes: "gostos", comments: "comentários", save: "Guardar",
+    cancelled: "Pagamento cancelado.", cancelledSub: "Nada foi cobrado. Podes tentar de novo.",
+    wrong: "Algo correu mal.", offline: "modelo offline", noconn: "sem ligação",
+    footer: "Uma fatia focada do Teleka, a plataforma social de culinária e comércio",
+    t: {
+      parse_request: d => `Percebi ${d.ingredients.length} ingrediente(s): ${d.ingredients.join(", ")}`,
+      generate_recipe: d => `“${d.title}” · ${d.ingredients} ingredientes · ${d.engine}`,
+      check_pantry: d => `Já tens ${d.have.length} · faltam ${d.missing.length}` + (d.skipped.length ? ` · ignorado ${d.skipped.join(", ")} (torneira)` : ""),
+      search_marketplace: d => `${d.found} produto(s) de ${d.vendors.join(", ") || "—"} · ${d.total}` + (d.not_found.length ? ` · sem vendedor: ${d.not_found.join(", ")}` : ""),
+      create_paypal_order: d => `Orders API v2 → ${d.order_id} · ${d.amount} · ${d.status} (${d.mode})`,
+      capture_payment: d => `Orders API v2 capture → ${d.capture_id} · ${d.status}`,
+      verify_amount: d => `esperado ${d.expected} · capturado ${d.captured} · ${d.match ? "confere ✓" : "NÃO CONFERE"}`,
+      pay_vendors: d => `Payouts API v1 → ${d.vendors} vendedor(es) · lote ${d.batch_id} · ${d.status} · ${d.total}`,
+    },
+  },
+};
+
+let lang = (() => { try{ return localStorage.getItem("teleka_lang"); }catch(e){ return null; } })()
+           || ((navigator.language || "").toLowerCase().startsWith("pt") ? "pt" : "en");
+let estado = null, ultimo = null, confirmado = null, etapa = 0;
+const T = () => I18N[lang];
+
+function money(v, m){ return Number(v).toFixed(2) + " " + esc(m); }
+
+function aplicarLingua(){
+  document.documentElement.lang = lang;
+  document.querySelectorAll("[data-i18n]").forEach(el => el.textContent = T()[el.dataset.i18n]);
+  document.querySelectorAll("[data-i18n-html]").forEach(el => el.innerHTML = T()[el.dataset.i18nHtml]);
+  document.querySelectorAll(".lang button").forEach(b => b.classList.toggle("on", b.dataset.lang === lang));
+  $("pedido").placeholder = T().placeholder;
+  if(!$("pedido").dataset.touched) $("pedido").value = T().examples[0];
+  $("chips").innerHTML = T().examples.map(e => `<button type="button" class="chip">${esc(e)}</button>`).join("");
+  document.querySelectorAll(".chip").forEach(c => c.onclick = () => { $("pedido").value = c.textContent; $("pedido").dataset.touched = 1; });
+  if(!$("go").disabled) $("go").textContent = T().go;
+  pintarFlow(); pintarEstado();
+  if(ultimo) renderResultado(ultimo);
+  if(confirmado) renderConfirmacao(confirmado);
+}
+
+function pintarFlow(){
+  $("flow").innerHTML = T().steps.map((s, i) =>
+    `<div class="st ${i < etapa ? "done" : i === etapa ? "now" : ""}"><div class="bar"></div>${esc(s)}</div>`).join("");
+}
+function irPara(n){ etapa = n; pintarFlow(); }
+
+function pintarEstado(){
+  if(!estado) return;
+  $("b-paypal").textContent = estado.paypal === "sandbox" ? "sandbox" : "mock (demo)";
+  $("dot-pp").style.background = estado.paypal === "sandbox" ? "var(--ok)" : "var(--warn)";
+  $("b-ia").textContent = estado.ia === "configurada" ? (estado.ia_modelo || "LLM") : T().offline;
+  $("dot-ia").style.background = estado.ia === "configurada" ? "var(--ok)" : "var(--warn)";
+  if(estado.paypal_aviso) $("b-paypal").title = estado.paypal_aviso;
+}
+
+function erroCard(msg){ return `<div class="card erro"><b>${esc(T().wrong)}</b><div class="muted">${esc(msg)}</div></div>`; }
 
 async function api(url, corpo){
-  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"},
-                              body: JSON.stringify(corpo)});
+  const r = await fetch(url, {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(corpo)});
   let d = null;
   try{ d = await r.json(); }catch(e){}
   if(!r.ok){
@@ -110,78 +302,78 @@ async function api(url, corpo){
   return d;
 }
 
-const EXEMPLOS = ["tenho arroz, tomate e peixe", "frango, batata e cenoura", "ovos, farinha e leite"];
-$("chips").innerHTML = EXEMPLOS.map(e => `<button type="button" class="chip">${esc(e)}</button>`).join("");
-document.querySelectorAll(".chip").forEach(c =>
-  c.onclick = () => { $("pedido").value = c.textContent; });
+function renderTrace(passos){
+  return passos.map((p, i) => {
+    let txt;
+    try{ txt = T().t[p.tool] ? T().t[p.tool](p.data) : JSON.stringify(p.data); }catch(e){ txt = JSON.stringify(p.data); }
+    const bad = p.tool === "verify_amount" && !p.data.match;
+    return `<li class="${bad ? "bad" : ""}" style="animation-delay:${i * 140}ms"><span class="n"></span>
+      <span class="ms">${esc(p.ms)} ms</span><div class="tool">${esc(p.tool)}()</div><div class="d">${esc(txt)}</div></li>`;
+  }).join("");
+}
 
-fetch("/api/estado").then(r => r.json()).then(s => {
-  $("b-paypal").textContent = s.paypal === "sandbox" ? "sandbox" : "mock (demo)";
-  $("b-ia").textContent = s.ia === "configurada" ? "Groq/LLM" : "modelo offline";
-  if(s.paypal_aviso) $("b-paypal").title = s.paypal_aviso;
-}).catch(() => { $("b-paypal").textContent = $("b-ia").textContent = "sem ligação"; });
-
-$("go").onclick = async () => {
-  const pedido = $("pedido").value.trim();
-  if(!pedido) return;
-  $("confirmacao").innerHTML = "";
-  $("go").disabled = true;
-  $("go").innerHTML = '<span class="spin"></span>A pensar…';
-  try{
-    ultimo = await api("/api/gerar", {pedido});
-    guardar("teleka_ultimo", ultimo);
-    renderResultado(ultimo);
-  } catch(e){
-    $("resultado").innerHTML = erroCard(e.message);
-  } finally {
-    $("go").disabled = false;
-    $("go").textContent = "Gerar receita e carrinho";
-  }
-};
+function nomeProduto(p){ return lang === "en" ? (p.nome_en || p.nome) : p.nome; }
 
 function renderResultado(d){
   const rec = d.receita;
-  const linhas = d.carrinho.map(p =>
-    `<tr><td>${esc(p.nome)}<div class="vend">${esc(p.vendedor)}</div></td>
-         <td class="r">${money(p.preco, p.moeda)}</td></tr>`).join("");
-  const passos = rec.passos.map(p => `<li>${esc(p)}</li>`).join("");
-  const semStock = (d.nao_encontrados || []).length
-    ? `<div class="muted" style="margin-top:8px">Sem vendedor no marketplace: ${esc(d.nao_encontrados.join(", "))}</div>` : "";
-  const botao = d.order
-    ? `<div class="muted" style="margin-top:8px">Order PayPal: <code>${esc(d.order.id)}</code> · ${esc(d.order.status)}</div>
-       <button class="pay" id="pay">Pagar com PayPal (${esc(d.paypal_modo)})</button>`
-    : `<div class="muted" style="margin-top:8px">Já tens tudo — nada a comprar.</div>`;
+  const faltam = new Set(d.faltam), naoHa = new Set(d.nao_encontrados || []);
+  const ings = rec.ingredientes_necessarios.map(i => {
+    const cls = naoHa.has(i) ? "na" : faltam.has(i) ? "buy" : "have";
+    const tip = cls === "na" ? T().na : cls === "buy" ? T().buy : T().have;
+    return `<span class="ing ${cls}" title="${esc(tip)}">${cls === "have" ? "✓ " : ""}${esc(i)}</span>`;
+  }).join("");
+
+  const porVendedor = {};
+  d.carrinho.forEach(p => {
+    (porVendedor[p.vendedor_id] ||= {nome: p.vendedor, bairro: p.bairro, itens: [], sub: 0}).itens.push(p);
+    porVendedor[p.vendedor_id].sub += p.preco_centimos;
+  });
+  const vendedores = Object.values(porVendedor).map(v => `
+    <div class="vendor"><div class="vh">${esc(v.nome)} <span>${esc(v.bairro)}</span></div>
+      ${v.itens.map(p => `<div class="line"><span>${esc(nomeProduto(p))}</span><span>${money(p.preco, p.moeda)}</span></div>`).join("")}
+      <div class="line" style="color:var(--muted);font-size:12px"><span>${esc(T().subtotal)}</span><span>${money(v.sub / 100, d.moeda)}</span></div>
+    </div>`).join("");
+
+  const pago = !!confirmado;
+  const pagar = d.order && !pago ? `
+      <button class="btn paypal" id="pay">${d.order.approve_url ? T().pay : T().payMock}</button>
+      <div class="secure">🔒 <span>${esc(T().secure)}</span></div>` : "";
+
   $("resultado").innerHTML = `
-    <div class="card">
-      <div class="dish">
-        <img src="${esc(d.imagem_url)}" alt="${esc(rec.titulo)}">
-        <div>
-          <h2>${esc(rec.titulo)}</h2>
-          <div class="muted">${esc(rec.descricao)}</div>
-          <div class="muted" style="margin-top:6px">motor: ${esc(rec.motor)}</div>
+    <div class="grid">
+      <div class="card">
+        <div class="dish">
+          <img src="${esc(d.imagem_url)}" alt="${esc(rec.titulo)}" id="dish-img">
+          <div><h2>${esc(rec.titulo)}</h2><div class="muted">${esc(rec.descricao)}</div>
+          <span class="engine">${esc(rec.motor)}</span></div>
         </div>
+        <h3>${esc(T().ingredients)}</h3><div class="ings">${ings}</div>
+        <h3>${esc(T().recipe)}</h3><ol>${rec.passos.map(p => `<li>${esc(p)}</li>`).join("")}</ol>
       </div>
-      <ol>${passos}</ol>
+      <div class="card">
+        <h2>${esc(T().cart)}</h2>
+        ${d.carrinho.length ? `<div style="margin-top:10px">${vendedores}</div>
+          <div class="total"><span>${esc(T().total)}</span><span>${money(d.total, d.moeda)}</span></div>`
+          : `<div class="muted" style="margin-top:8px">${esc(T().nothing)}</div>`}
+        ${pagar}
+      </div>
     </div>
     <div class="card">
-      <h2>Carrinho <span class="muted">(ingredientes em falta)</span></h2>
-      <table>${linhas}</table>
-      <div class="total"><span>Total</span><span>${money(d.total, d.moeda)}</span></div>
-      ${semStock}
-      ${botao}
+      <h2>${esc(T().activity)}</h2><div class="muted" style="margin-bottom:14px">${esc(T().activitySub)}</div>
+      <ul class="trace">${renderTrace(d.trace.concat(confirmado ? confirmado.trace : []))}</ul>
     </div>`;
-  const img = document.querySelector(".dish img");
-  if(img) img.onerror = () => { const ph = document.createElement("div"); ph.className = "ph"; ph.textContent = "🍲"; img.replaceWith(ph); };
+  const img = $("dish-img");
+  if(img) img.onerror = () => { const ph = document.createElement("div"); ph.className = "img"; ph.textContent = "🍲"; img.replaceWith(ph); };
   const pay = $("pay");
-  if(pay) pay.onclick = pagar;
+  if(pay) pay.onclick = pagar_;
 }
 
-async function pagar(){
+async function pagar_(){
   const pay = $("pay");
-  // Sandbox real: o comprador aprova na PayPal e volta a esta pagina (?token=...).
-  if(ultimo.order.approve_url){
+  if(ultimo.order.approve_url){       // sandbox: the buyer approves on PayPal and comes back here
     pay.disabled = true;
-    pay.innerHTML = '<span class="spin"></span>A abrir a PayPal…';
+    pay.innerHTML = `<span class="spin"></span>${esc(T().opening)}`;
+    guardar("teleka_ultimo", ultimo);
     window.location.href = ultimo.order.approve_url;
     return;
   }
@@ -189,37 +381,93 @@ async function pagar(){
 }
 
 async function confirmar(orderId){
+  irPara(3);
   const pay = $("pay");
-  if(pay){ pay.disabled = true; pay.innerHTML = '<span class="spin"></span>A pagar…'; }
+  if(pay){ pay.disabled = true; pay.innerHTML = `<span class="spin"></span>${esc(T().paying)}`; }
   try{
-    const c = await api("/api/confirmar", {order_id: orderId});
-    const pos = c.payouts.map(p =>
-      `<tr><td>${esc(p.vendedor)}<div class="vend">${esc(p.destinatario)}</div></td>
-           <td class="r"><span class="pill">${esc(p.status)}</span> ${money(p.valor, p.moeda)}</td></tr>`).join("");
-    if(pay) pay.remove();
-    $("confirmacao").innerHTML = `
-      <div class="card ok">
-        <h2>✓ Pagamento concluído</h2>
-        <div class="muted">Captura <code>${esc(c.captura.id)}</code> · ${esc(c.captura.status)}</div>
-        <h2 style="margin-top:14px;font-size:15px">Vendedores pagos</h2>
-        <table>${pos}</table>
-        <div class="muted" style="margin-top:12px">${esc(c.mensagem)}</div>
-      </div>`;
+    confirmado = await api("/api/confirmar", {order_id: orderId});
+    irPara(6);
+    if(ultimo) renderResultado(ultimo);
+    renderConfirmacao(confirmado);
+    $("confirmacao").scrollIntoView({behavior: "smooth", block: "start"});
   } catch(e){
     $("confirmacao").innerHTML = erroCard(e.message);
-    if(pay){ pay.disabled = false; pay.textContent = "Tentar de novo"; }
+    if(pay){ pay.disabled = false; pay.textContent = T().retry; }
   }
 }
 
-// Regresso da PayPal: ?paypal=aprovado&token=<order_id>&PayerID=...  ou  ?paypal=cancelado
+function renderConfirmacao(c){
+  const pos = c.payouts.map(p => `
+    <div class="line"><span>${esc(p.vendedor)}<div class="muted" style="font-size:12px">${esc(p.destinatario)}</div></span>
+      <span><span class="pill">${esc(p.status)}</span> ${money(p.valor, p.moeda)}</span></div>`).join("");
+  const vendedores = [...new Set(c.payouts.map(p => p.vendedor))].join(" · ");
+  const img = ultimo ? ultimo.imagem_url : "";
+  $("confirmacao").innerHTML = `
+    <div class="grid">
+      <div class="card ok">
+        <h2>${esc(T().paid)}</h2>
+        <div class="muted">${esc(T().capture)} <code>${esc(c.captura.id)}</code> · ${esc(c.captura.status)} · <span class="pill">${esc(T().verified)}</span></div>
+        <h3>${esc(T().settled)}</h3>${pos}
+        <div class="muted" style="margin-top:12px">${esc(c.mensagem)}</div>
+      </div>
+      <div class="card">
+        <h2>${esc(T().collection)}</h2><div class="muted" style="margin-bottom:12px">${esc(T().collectionSub)}</div>
+        <div class="post">
+          <div class="ph"><div class="avatar">T</div><div><b style="font-size:14px">${esc(T().you)}</b>
+            <div class="muted" style="font-size:12px">Teleka · ${esc(new Date().toLocaleDateString(lang))}</div></div></div>
+          ${img ? `<img class="pimg" src="${esc(img)}" alt="" onerror="this.remove()">` : ""}
+          <div class="pb"><b>${esc(c.titulo)}</b>
+            <div class="muted">${esc(T().cookedWith)} ${esc(vendedores)}</div>
+            <div class="acts"><span>♥ 0 ${esc(T().likes)}</span><span>💬 0 ${esc(T().comments)}</span><span>🔖 ${esc(T().save)}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+$("go").onclick = async () => {
+  const pedido = $("pedido").value.trim();
+  if(!pedido) return;
+  confirmado = null; $("confirmacao").innerHTML = "";
+  $("go").disabled = true;
+  $("go").innerHTML = `<span class="spin"></span>${esc(T().thinking)}`;
+  irPara(1);
+  try{
+    ultimo = await api("/api/gerar", {pedido, lang});
+    guardar("teleka_ultimo", ultimo);
+    irPara(ultimo.order ? 3 : 2);
+    renderResultado(ultimo);
+    $("resultado").scrollIntoView({behavior: "smooth", block: "start"});
+  } catch(e){
+    irPara(0);
+    $("resultado").innerHTML = erroCard(e.message);
+  } finally {
+    $("go").disabled = false;
+    $("go").textContent = T().go;
+  }
+};
+$("pedido").addEventListener("input", () => { $("pedido").dataset.touched = 1; });
+
+document.querySelectorAll(".lang button").forEach(b => b.onclick = () => {
+  lang = b.dataset.lang;
+  try{ localStorage.setItem("teleka_lang", lang); }catch(e){}
+  aplicarLingua();
+});
+
+fetch("/api/estado").then(r => r.json()).then(s => { estado = s; pintarEstado(); })
+  .catch(() => { $("b-paypal").textContent = $("b-ia").textContent = T().noconn; });
+
+aplicarLingua();
+
+// Back from PayPal: ?paypal=aprovado&token=<order_id>&PayerID=...  or  ?paypal=cancelado
 (function regresso(){
   const q = new URLSearchParams(location.search);
   if(!q.has("paypal")) return;
   history.replaceState(null, "", location.pathname);
   ultimo = ler("teleka_ultimo");
-  if(ultimo) renderResultado(ultimo);
+  if(ultimo){ renderResultado(ultimo); irPara(3); }
   if(q.get("paypal") === "cancelado"){
-    $("confirmacao").innerHTML = `<div class="card"><b>Pagamento cancelado.</b><div class="muted">Nada foi cobrado. Podes tentar de novo.</div></div>`;
+    $("confirmacao").innerHTML = `<div class="card"><b>${esc(T().cancelled)}</b><div class="muted">${esc(T().cancelledSub)}</div></div>`;
   } else if(q.get("token")){
     confirmar(q.get("token"));
   }

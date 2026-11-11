@@ -75,11 +75,23 @@ def procurar_produtos(ingredientes):
             "ingrediente": ing,
             "produto_id": p["id"],
             "nome": p["nome"],
+            "nome_en": p.get("nome_en", p["nome"]),
             "preco": p["preco"],
             "preco_centimos": para_centimos(p["preco"]),
             "moeda": MOEDA,
             "vendedor_id": v["id"],
             "vendedor": v["nome"],
+            "bairro": v.get("bairro", ""),
             "vendedor_email": v["email"],
         })
     return carrinho, nao_encontrados
+
+
+def mesmo_produto(a, b):
+    """True when two ingredient names name the SAME catalog product exactly
+    ('arroz' and 'rice' are both tags of p1). Lets the pantry check work across
+    languages: the user types PT, the AI answers EN, nobody buys rice twice."""
+    def exacto(ing):
+        return {p["id"] for v in _DADOS["vendedores"] for p in v["produtos"]
+                if _pontuacao(ing, p) == 3}
+    return bool(exacto(a) & exacto(b))

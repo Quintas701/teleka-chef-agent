@@ -11,7 +11,7 @@ POLLINATIONS = "https://image.pollinations.ai/prompt/"
 
 def url_imagem(descricao, ingredientes_txt=""):
     prompt = (
-        f"{descricao}. Ingredientes: {ingredientes_txt}. "
-        "Fotografia de comida realista, alta qualidade, vista de cima, mesa limpa."
+        f"{descricao}, made with {ingredientes_txt}. "
+        "Professional food photography, appetizing, natural light, top-down, rustic table."
     )
     return POLLINATIONS + urllib.parse.quote(prompt) + "?width=512&height=512&nologo=true"

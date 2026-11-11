@@ -48,9 +48,10 @@ def test_parser_separa_com_e_ignora_verbos():
 
 def test_catalogo_casa_palavras_e_reporta_o_que_falta():
     carrinho, falta = procurar_produtos(["peito de frango", "limões", "salsa", "trufa"])
-    nomes = [p["nome"] for p in carrinho]
-    assert nomes == ["Frango (1 kg)", "Limao (3 un)"]
-    assert falta == ["salsa", "trufa"]  # 'salsa' NAO casa com 'sal'
+    ids = [p["produto_id"] for p in carrinho]
+    assert ids == ["p13", "p11", "p21"]  # 'salsa' e salsa (p21), nunca sal (p5)
+    assert falta == ["trufa"]
+    assert all(p["bairro"] and p["nome_en"] for p in carrinho)
 
 
 def test_nao_cobra_o_que_o_utilizador_ja_tem():
@@ -67,8 +68,35 @@ def test_llm_com_lista_como_string_e_recusado():
 
 def test_llm_falha_cai_no_offline(monkeypatch):
     monkeypatch.setenv("LLM_API_KEY", "x")
-    monkeypatch.setattr(recipe, "_gerar_llm", lambda h: (_ for _ in ()).throw(RuntimeError("rede")))
-    assert recipe.gerar_receita(["arroz"])["motor"] == "modelo (offline)"
+    monkeypatch.setattr(recipe, "_gerar_llm", lambda h, l: (_ for _ in ()).throw(RuntimeError("rede")))
+    assert recipe.gerar_receita(["arroz"])["motor"] == "offline template"
+    assert recipe.gerar_receita(["arroz"], lang="pt")["motor"] == "modelo offline"
+
+
+def test_despensa_entre_linguas_nao_compra_duas_vezes(monkeypatch):
+    # o utilizador escreve "arroz", a IA responde "rice": e o MESMO produto
+    monkeypatch.setattr(recipe, "_tem_llm", lambda: False)
+    monkeypatch.setattr(agent, "gerar_receita", lambda have, lang="en": {
+        "titulo": "Rice", "descricao": "", "passos": ["cook"], "motor": "x",
+        "ingredientes_necessarios": ["rice", "tomato", "water"]})
+    r = agent.processar("tenho arroz")
+    ids = [p["produto_id"] for p in r["carrinho"]]
+    assert "p1" not in ids and ids == ["p10"]
+    pantry = next(t for t in r["trace"] if t["tool"] == "check_pantry")["data"]
+    assert pantry["have"] == ["rice"] and pantry["skipped"] == ["water"]  # agua nao se compra
+
+
+def test_trace_regista_cada_ferramenta_e_lingua():
+    r = agent.processar("I have rice, tomato and fish", lang="en")
+    assert [t["tool"] for t in r["trace"]] == [
+        "parse_request", "generate_recipe", "check_pantry", "search_marketplace", "create_paypal_order"]
+    assert all(isinstance(t["ms"], int) for t in r["trace"])
+    assert r["receita"]["titulo"].startswith("Chef's")
+    c = agent.confirmar(r["order"]["id"])
+    assert [t["tool"] for t in c["trace"]] == ["capture_payment", "verify_amount", "pay_vendors"]
+    assert c["trace"][1]["data"]["match"] is True
+    pt = agent.processar("tenho arroz", lang="pt")
+    assert pt["lang"] == "pt" and pt["receita"]["motor"] == "modelo offline"
 
 
 # ---------- fluxo mock pela API HTTP ----------
@@ -110,6 +138,12 @@ def test_pedido_vazio_ou_enorme_e_recusado(cliente):
     assert cliente.post("/api/gerar", json={"pedido": ""}).status_code == 422
     assert cliente.post("/api/gerar", json={"pedido": "x" * 501}).status_code == 422
     assert cliente.post("/api/gerar", json={"pedido": "e e e"}).status_code == 400
+    assert cliente.post("/api/gerar", json={"pedido": "arroz", "lang": "xx"}).status_code == 422
+
+
+def test_pagina_e_logo_servidos(cliente):
+    assert "TELEKA" in cliente.get("/").text
+    assert cliente.get("/logo.svg").headers["content-type"].startswith("image/svg")
 
 
 # ---------- sandbox com a API PayPal simulada ----------
