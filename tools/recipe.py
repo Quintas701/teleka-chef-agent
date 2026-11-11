@@ -6,6 +6,9 @@ Devolve sempre: {titulo, descricao, passos: [...], ingredientes_necessarios: [..
 """
 import json
 import os
+import re
+
+import requests
 
 _STAPLES = ["cebola", "alho", "azeite", "sal"]
 
@@ -14,12 +17,23 @@ def _tem_llm():
     return bool(os.getenv("LLM_API_KEY"))
 
 
+def _extrair_json(texto):
+    """Le JSON mesmo que o modelo o embrulhe em texto ou cercas ```."""
+    try:
+        return json.loads(texto)
+    except Exception:
+        pass
+    m = re.search(r"\{.*\}", texto, re.DOTALL)
+    if m:
+        return json.loads(m.group(0))
+    raise ValueError("resposta da IA nao e JSON")
+
+
 def _gerar_llm(have_list):
-    from openai import OpenAI
-    client = OpenAI(
-        api_key=os.getenv("LLM_API_KEY"),
-        base_url=os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1"),
-    )
+    # HTTP directo ao endpoint compativel-OpenAI (Groq/Gemini). Usamos requests
+    # em vez do SDK openai para evitar conflitos de dependencias (ex.: Anaconda,
+    # onde o SDK v3 dava "TypeError: process() takes no keyword arguments").
+    base = os.getenv("LLM_BASE_URL", "https://api.groq.com/openai/v1").rstrip("/")
     modelo = os.getenv("LLM_MODEL", "openai/gpt-oss-120b")
     have = ", ".join(have_list)
     prompt = (
@@ -31,18 +45,28 @@ def _gerar_llm(have_list):
         '"ingredientes_necessarios" (lista COMPLETA de ingredientes do prato, '
         "em minusculas e no singular, incluindo os que o utilizador ja tem)."
     )
-    resp = client.chat.completions.create(
-        model=modelo,
-        messages=[
-            {"role": "system", "content": "Respondes sempre com JSON valido, sem texto a mais."},
-            {"role": "user", "content": prompt},
-        ],
-        temperature=0.6,
-        max_tokens=700,
+    r = requests.post(
+        base + "/chat/completions",
+        headers={
+            "Authorization": f"Bearer {os.getenv('LLM_API_KEY')}",
+            "Content-Type": "application/json",
+        },
+        json={
+            "model": modelo,
+            "messages": [
+                {"role": "system", "content": "Respondes sempre com JSON valido, sem texto a mais."},
+                {"role": "user", "content": prompt},
+            ],
+            "temperature": 0.6,
+            "max_tokens": 700,
+            "response_format": {"type": "json_object"},
+        },
         timeout=20,
-        response_format={"type": "json_object"},
     )
-    dados = _validar(json.loads(resp.choices[0].message.content))
+    if r.status_code >= 400:
+        raise RuntimeError(f"HTTP {r.status_code}: {r.text[:200]}")
+    conteudo = r.json()["choices"][0]["message"]["content"]
+    dados = _validar(_extrair_json(conteudo))
     dados["motor"] = f"IA ({modelo})"
     return dados
 
